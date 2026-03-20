@@ -1,0 +1,1054 @@
+:root {
+    --bg: #070a12;
+    --panel: rgba(20, 25, 40, 0.9);
+    --panel-2: rgba(255, 255, 255, 0.05);
+    --accent: #58b7ff;
+    --accent2: #44ff8a;
+    --text: rgba(255, 255, 255, 0.9);
+    --shadow: 0 20px 60px rgba(0, 0, 0, 0.65);
+    --button: rgba(255, 255, 255, 0.12);
+    --button-active: rgba(255, 255, 255, 0.22);
+    --button-border: rgba(255, 255, 255, 0.15);
+
+    /* Xbox button colors */
+    --btn-a: #22b14c;
+    --btn-a-glow: rgba(34, 177, 76, 0.4);
+    --btn-b: #ff5e4d;
+    --btn-b-glow: rgba(255, 94, 77, 0.4);
+    --btn-x: #2f5bca;
+    --btn-x-glow: rgba(47, 91, 202, 0.4);
+    --btn-y: #ffb81c;
+    --btn-y-glow: rgba(255, 184, 28, 0.4);
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: radial-gradient(circle at top, #0d1222 0%, #03050b 60%, #000 100%);
+    color: var(--text);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.button-set {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+[data-layout-id="left-shoulders"] .btn,
+[data-layout-id="right-shoulders"] .btn {
+    width: clamp(70px, 12vw, 90px);
+    height: clamp(36px, 6vw, 48px);
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.45), 0 6px 14px rgba(0, 0, 0, 0.35);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.controller {
+    width: min(100vw, 1400px);
+    max-width: 1400px;
+    aspect-ratio: 16 / 10;
+    height: auto;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 1rem;
+    gap: 1rem;
+    align-items: stretch;
+    touch-action: none;
+    background: #2f3239;
+    border-radius: 0;
+    box-shadow: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.controller::before,
+.controller::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+            radial-gradient(120% 80% at 0% 30%, rgba(255, 255, 255, 0.05), transparent 55%),
+            radial-gradient(110% 80% at 100% 30%, rgba(255, 255, 255, 0.05), transparent 55%);
+    opacity: 0.8;
+}
+
+.controller::after {
+    background:
+            radial-gradient(80% 70% at 15% 85%, rgba(255, 255, 255, 0.04), transparent 65%),
+            radial-gradient(80% 70% at 85% 85%, rgba(255, 255, 255, 0.04), transparent 65%);
+    mix-blend-mode: soft-light;
+}
+
+.panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1rem;
+    border-radius: 2rem;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(12px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    min-width: 0;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.editing .editable {
+    position: absolute;
+    outline: 2px dashed var(--accent);
+    outline-offset: 3px;
+    cursor: move;
+    z-index: 5;
+    border-radius: 0.5rem;
+    transition: outline-color 0.2s ease;
+}
+
+.editing .editable.dragging {
+    outline-color: var(--accent2);
+    outline-style: solid;
+    outline-width: 3px;
+    z-index: 10;
+    box-shadow: 0 8px 24px rgba(88, 183, 255, 0.3);
+}
+
+.editing .editable.resizing {
+    outline-color: #ff5e4d;
+    outline-style: solid;
+    outline-width: 3px;
+}
+
+.resize-handle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.25));
+    border: 2px solid var(--accent);
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    display: none;
+    touch-action: none;
+    box-shadow: 0 2px 8px rgba(88, 183, 255, 0.3);
+    cursor: nwse-resize;
+}
+
+.editing .editable.selected .resize-handle {
+    display: block;
+}
+
+.editing .editable.selected {
+    outline: 2px dashed var(--accent);
+    outline-offset: 3px;
+    border-radius: 0.5rem;
+    box-shadow: 0 0 0 2px rgba(88, 183, 255, 0.5);
+}
+
+.editing .editable.dragging,
+.editing .editable.resizing {
+    outline-color: #44ff8a;
+    box-shadow: 0 0 0 3px rgba(68, 255, 138, 0.6);
+}
+
+.visibility-toggle {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(68, 255, 138, 0.15);
+    border: 2px solid var(--accent2);
+    color: var(--accent2);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    padding: 0;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(68, 255, 138, 0.2);
+    transition: all 0.15s ease;
+}
+
+.visibility-toggle:hover {
+    background: rgba(68, 255, 138, 0.25);
+    box-shadow: 0 2px 12px rgba(68, 255, 138, 0.3);
+}
+
+.editing .visibility-toggle {
+    display: flex;
+}
+
+.hidden {
+    display: none !important;
+    /*opacity: 0.3;*/
+    filter: grayscale(0.5);
+}
+
+
+
+.btn {
+    width: 3.4rem;
+    height: 2.4rem;
+    border-radius: 1.2rem;
+    border: 1px solid var(--button-border);
+    background: var(--button);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    user-select: none;
+    transition: transform 0.1s ease, background 0.15s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+.btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 4px 14px rgba(88, 183, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.btn:active,
+.btn.active {
+    background: var(--button-active);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.stick-container {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    aspect-ratio: 1 / 1;
+    max-width: clamp(120px, 22vw, 160px);
+    min-width: 90px;
+}
+
+.stick {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.35);
+    background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.7));
+    box-shadow: inset 0 10px 30px rgba(0, 0, 0, 0.55), inset 0 0 0 6px rgba(0, 0, 0, 0.6);
+    position: relative;
+    touch-action: none;
+    cursor: grab;
+}
+
+.stick:active {
+    cursor: grabbing;
+}
+
+.thumb {
+    position: absolute;
+    width: 36%;
+    height: 36%;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.65);
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.65));
+    box-shadow: inset 0 1px 4px rgba(255, 255, 255, 0.2), inset 0 -2px 6px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.45);
+    transform: translate(-50%, -50%);
+    left: 50%;
+    top: 50%;
+    pointer-events: none;
+    transition: transform 0.08s ease;
+}
+
+.dpad {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 1 / 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 0.18rem;
+    touch-action: none;
+    user-select: none;
+}
+
+.dpad button {
+    border-radius: 0.3rem;
+    border: 2px solid rgba(255, 255, 255, 0.55);
+    background: transparent;
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 700;
+    touch-action: none;
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+    transition: transform 0.08s ease, border-color 0.12s ease, background 0.12s ease;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+}
+
+.dpad button:disabled {
+    opacity: 0.08;
+    border-style: solid;
+    background: transparent;
+    pointer-events: none;
+}
+
+.dpad button:active {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(1px);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+[data-layout-id="system-buttons"] {
+    position: absolute;
+    left: 50%;
+    bottom: 4%;
+    transform: translateX(-50%);
+    width: clamp(100px, 22vw, 140px);
+    height: clamp(24px, 4vw, 32px);
+    display: flex;
+    gap: 0.32rem;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    touch-action: none;
+    user-select: none;
+}
+
+.sys-btn {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 3px 8px rgba(0, 0, 0, 0.18);
+    transition: transform 0.1s ease, background 0.12s ease, box-shadow 0.12s ease;
+    touch-action: none;
+}
+
+.sys-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+}
+
+.sys-btn:active,
+.sys-btn.active {
+    background: rgba(255, 255, 255, 0.16);
+    transform: translateY(1px);
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+[data-layout-id="home-button"] {
+    position: absolute;
+    top: 4%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: clamp(44px, 8vw, 56px);
+    height: clamp(44px, 8vw, 56px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    touch-action: none;
+    user-select: none;
+}
+
+.home-btn {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: none;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.16), rgba(0, 0, 0, 0.55));
+    color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 18px rgba(0, 0, 0, 0.35);
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+    touch-action: none;
+    padding: 6px;
+}
+
+.home-btn svg {
+    width: 90%;
+    height: 90%;
+    fill: rgba(255, 255, 255, 0.95);
+}
+
+.home-btn:hover {
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.45));
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.4);
+}
+
+.home-btn:active,
+.home-btn.active {
+    transform: translateY(1px);
+    background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.16), rgba(0, 0, 0, 0.6));
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Allow dragging system buttons by touching anywhere in edit mode */
+.editing .system-buttons .sys-btn {
+    pointer-events: none;
+}
+
+/* Make dpad easier to drag in edit mode */
+.editing .dpad button {
+    pointer-events: none;
+}
+
+.face-buttons {
+    width: 180px;
+    height: 180px;
+    margin: 0 auto;
+    position: relative;
+    display: grid;
+    grid-template-areas:
+    ". . x-btn x-btn . ."
+    "y-btn y-btn x-btn x-btn a-btn a-btn"
+    "y-btn y-btn . . a-btn a-btn"
+    "y-btn y-btn b-btn b-btn a-btn a-btn"
+    ". . b-btn b-btn . .";
+}
+
+.face-buttons .btn-a {
+    grid-area: a-btn;
+}
+.face-buttons .btn-b {
+    grid-area: b-btn;
+}
+.face-buttons .btn-x {
+    grid-area: x-btn;
+}
+.face-buttons .btn-y {
+    grid-area: y-btn;
+}
+.face-buttons button {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    border: 2px solid;
+    color: #fff;
+    font-weight: 700;
+    touch-action: none;
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    font-size: 1.1rem;
+}
+
+.face-buttons button:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.face-buttons button:active {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.btn-a {
+    top: 45%;
+    left: 78%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, var(--btn-a) 0%, #1a8a38 100%);
+    border-color: #33d962;
+    box-shadow: 0 6px 16px var(--btn-a-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-a:hover {
+    filter: brightness(1.2) drop-shadow(0 0 8px var(--btn-a-glow));
+}
+
+.btn-a:active {
+    box-shadow: 0 2px 8px var(--btn-a-glow), inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.btn-b {
+    top: 68%;
+    left: 55%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, var(--btn-b) 0%, #d4453d 100%);
+    border-color: #ff7766;
+    box-shadow: 0 6px 16px var(--btn-b-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-b:hover {
+    filter: brightness(1.2) drop-shadow(0 0 8px var(--btn-b-glow));
+}
+
+.btn-b:active {
+    box-shadow: 0 2px 8px var(--btn-b-glow), inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.btn-x {
+    top: 20%;
+    left: 55%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, var(--btn-x) 0%, #1e3fa6 100%);
+    border-color: #4a7ff5;
+    box-shadow: 0 6px 16px var(--btn-x-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-x:hover {
+    filter: brightness(1.2) drop-shadow(0 0 8px var(--btn-x-glow));
+}
+
+.btn-x:active {
+    box-shadow: 0 2px 8px var(--btn-x-glow), inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.btn-y {
+    top: 45%;
+    left: 32%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, var(--btn-y) 0%, #d99e03 100%);
+    border-color: #ffd40a;
+    box-shadow: 0 6px 16px var(--btn-y-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-y:hover {
+    filter: brightness(1.2) drop-shadow(0 0 8px var(--btn-y-glow));
+}
+
+.btn-y:active {
+    box-shadow: 0 2px 8px var(--btn-y-glow), inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.hint {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    opacity: 0.6;
+    text-align: center;
+    pointer-events: none;
+    z-index: 1;
+}
+
+@media (max-width: 900px) {
+    .controller {
+        padding: 0.6rem;
+        gap: 0.6rem;
+        border-radius: 18px;
+    }
+
+    .panel {
+        padding: 0.8rem;
+        border-radius: 1.4rem;
+    }
+
+    .stick-container {
+        max-width: clamp(110px, 30vw, 150px);
+    }
+
+    [data-layout-id="left-shoulders"] .btn,
+    [data-layout-id="right-shoulders"] .btn {
+        width: clamp(64px, 18vw, 80px);
+        height: clamp(32px, 8vw, 42px);
+    }
+
+    .dpad {
+        max-width: clamp(120px, 26vw, 160px);
+    }
+
+    .face-buttons {
+        transform: scale(0.9);
+    }
+}
+
+@media (orientation: landscape) and (max-width: 900px) {
+    body {
+        display: block;
+        align-items: stretch;
+        justify-content: stretch;
+    }
+
+    .controller {
+        flex-direction: row;
+        position: fixed;
+        inset: 0;
+        padding: 0.4rem;
+        gap: 0.5rem;
+        width: 100vw;
+        max-width: none;
+        height: 100vh;
+        max-height: none;
+        border-radius: 0;
+        box-sizing: border-box;
+    }
+
+    .panel {
+        padding: 0.7rem;
+        border-radius: 1.1rem;
+    }
+
+    .stick-container {
+        max-width: clamp(100px, 24vw, 140px);
+        aspect-ratio: 1;
+    }
+
+    .dpad {
+        max-width: clamp(110px, 24vw, 150px);
+    }
+
+    .face-buttons {
+        transform: scale(0.9);
+        margin-right: 0;
+    }
+
+    .hint {
+        display: none;
+    }
+}
+
+/* ===== HAMBURGER MENU & SETTINGS PANEL ===== */
+
+.hamburger-menu {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, rgba(10, 14, 25, 0.85), rgba(5, 8, 15, 0.9));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    cursor: pointer;
+    z-index: 1;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    -webkit-user-select: none;
+    user-select: none;
+    color: var(--text);
+}
+
+.hamburger-menu:hover {
+    background: linear-gradient(135deg, rgba(20, 25, 40, 0.95), rgba(10, 15, 25, 0.95));
+    box-shadow: 0 6px 16px rgba(88, 183, 255, 0.2);
+}
+
+.hamburger-menu:active {
+    transform: scale(0.95);
+}
+
+.settings-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 75%;
+    height: 100%;
+    max-width: 400px;
+    background: linear-gradient(135deg, var(--panel) 0%, var(--panel-2) 100%);
+    backdrop-filter: blur(20px);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.8);
+    z-index: 99;
+    transform: translateX(-100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-y: auto;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.settings-panel.open {
+    transform: translateX(0);
+}
+
+.settings-header {
+    padding: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+
+.settings-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.settings-close {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text);
+}
+
+.settings-close:hover {
+    background: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 2px 8px rgba(88, 183, 255, 0.2);
+}
+
+.settings-content {
+    flex: 1;
+    padding: 0;
+    overflow-y: auto;
+}
+
+.settings-section {
+    padding: 1.2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.settings-section h3 {
+    margin: 0 0 0.8rem 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+}
+
+.settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.settings-label {
+    font-size: 0.85rem;
+    color: var(--text);
+    opacity: 0.9;
+}
+
+.settings-input {
+    padding: 0.5rem 0.7rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.5rem;
+    color: var(--text);
+    font-size: 0.8rem;
+    font-family: inherit;
+    transition: all 0.15s ease;
+}
+
+.settings-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--accent);
+    box-shadow: 0 0 8px rgba(88, 183, 255, 0.2);
+}
+
+.settings-select {
+    padding: 0.5rem 0.7rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.5rem;
+    color: var(--text);
+    font-size: 0.8rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.settings-select:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.settings-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 8px rgba(88, 183, 255, 0.2);
+}
+
+.settings-button {
+    padding: 0.6rem;
+    background: rgba(88, 183, 255, 0.15);
+    border: 1px solid rgba(88, 183, 255, 0.3);
+    border-radius: 0.6rem;
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.settings-button:hover {
+    background: rgba(88, 183, 255, 0.25);
+    box-shadow: 0 0 12px rgba(88, 183, 255, 0.3);
+}
+
+.settings-button:active {
+    transform: translateY(1px);
+}
+
+.settings-button.danger {
+    background: rgba(255, 94, 77, 0.15);
+    border-color: rgba(255, 94, 77, 0.3);
+    color: #ff5e4d;
+}
+
+.settings-button.danger:hover {
+    background: rgba(255, 94, 77, 0.25);
+    box-shadow: 0 0 12px rgba(255, 94, 77, 0.3);
+}
+
+.settings-button-group {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.settings-button-group .settings-button {
+    flex: 1;
+}
+
+.settings-range {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.settings-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(88, 183, 255, 0.4);
+}
+
+.settings-range::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 8px rgba(88, 183, 255, 0.4);
+}
+
+.slider-value {
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: 600;
+    min-width: 30px;
+    text-align: right;
+}
+
+.visibility-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.visibility-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.visibility-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--accent);
+}
+
+.arrow-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+    max-width: 120px;
+}
+
+.arrow-btn {
+    width: 100%;
+    aspect-ratio: 1;
+    padding: 0.4rem;
+    background: rgba(68, 255, 138, 0.15);
+    border: 1px solid rgba(68, 255, 138, 0.3);
+    border-radius: 0.4rem;
+    color: var(--accent2);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.arrow-btn:hover {
+    background: rgba(68, 255, 138, 0.25);
+    box-shadow: 0 0 8px rgba(68, 255, 138, 0.3);
+}
+
+.arrow-btn:active {
+    transform: scale(0.9);
+}
+
+/* ===== TOAST NOTIFICATION ===== */
+
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(120%);
+    opacity: 0;
+    background: linear-gradient(135deg, rgba(34, 177, 76, 0.9), rgba(52, 211, 153, 0.85));
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 0.8rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 8px 24px rgba(34, 177, 76, 0.4);
+    z-index: 1000;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    pointer-events: none;
+    max-width: 90%;
+}
+
+.toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.toast.error {
+    background: linear-gradient(135deg, rgba(255, 94, 77, 0.9), rgba(239, 68, 68, 0.85));
+    box-shadow: 0 8px 24px rgba(255, 94, 77, 0.4);
+}
+
+/* Settings panel overlay when open */
+.settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0);
+    z-index: 98;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.settings-overlay.active {
+    opacity: 0.5;
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 600px) {
+    .settings-panel {
+        width: 85%;
+    }
+}
+
+@media (max-aspect-ratio: 1/1) {
+    .hamburger-menu {
+        top: 0.5rem;
+        left: 0.5rem;
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
+    }
+
+    .settings-panel {
+        width: 90%;
+        max-width: 350px;
+    }
+
+    .settings-header {
+        padding: 1rem;
+    }
+
+    .settings-section {
+        padding: 1rem;
+    }
+}
+
+
+
+#warning {
+    position: fixed;
+    inset: 0;
+    background: #111;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    z-index: 10;
+    transition: opacity 0.4s ease;
+}
+
+#warning.hidden {
+    display: none;
+    opacity: 0;
+    pointer-events: none;
+}

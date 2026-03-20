@@ -1,0 +1,87 @@
+{
+  "templates": {
+    "Default": {
+      "left-shoulders": {
+        "id": "left-shoulders",
+        "type": "trigger",
+        "groupId": "shoulders",
+        "x": 0.1,
+        "y": 0.06,
+        "width": 0.36,
+        "height": 0.1,
+        "visible": true
+      },
+      "left-stick": {
+        "id": "left-stick",
+        "type": "joystick",
+        "groupId": "left-stick",
+        "x": 0.14,
+        "y": 0.26,
+        "width": 0.32,
+        "height": 0.32,
+        "visible": true
+      },
+      "dpad": {
+        "id": "dpad",
+        "type": "dpad",
+        "groupId": "dpad",
+        "x": 0.24,
+        "y": 0.62,
+        "width": 0.32,
+        "height": 0.32,
+        "visible": true
+      },
+      "right-shoulders": {
+        "id": "right-shoulders",
+        "type": "trigger",
+        "groupId": "shoulders",
+        "x": 0.54,
+        "y": 0.06,
+        "width": 0.36,
+        "height": 0.1,
+        "visible": true
+      },
+      "face-buttons": {
+        "id": "face-buttons",
+        "type": "button-group",
+        "groupId": "face-buttons",
+        "x": 0.6,
+        "y": 0.26,
+        "width": 0.28,
+        "height": 0.28,
+        "visible": true
+      },
+      "system-buttons": {
+        "id": "system-buttons",
+        "type": "button-group",
+        "groupId": "system-buttons",
+        "x": 0.5,
+        "y": 0.9,
+        "width": 0.22,
+        "height": 0.07,
+        "visible": true
+      },
+      "home-button": {
+        "id": "home-button",
+        "type": "button-group",
+        "groupId": "system-buttons",
+        "x": 0.5,
+        "y": 0.05,
+        "width": 0.08,
+        "height": 0.08,
+        "visible": true
+      },
+      "right-stick": {
+        "id": "right-stick",
+        "type": "joystick",
+        "groupId": "right-stick",
+        "x": 0.54,
+        "y": 0.62,
+        "width": 0.32,
+        "height": 0.32,
+        "visible": true
+      }
+    }
+  },
+  "currentTemplate": "Default"
+}

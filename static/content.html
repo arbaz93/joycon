@@ -1,0 +1,216 @@
+<!-- Hamburger Menu Button -->
+<button class="hamburger-menu" id="hamburger-menu" aria-label="Open settings">☰</button>
+
+<!-- Settings Overlay -->
+<div class="settings-overlay" id="settings-overlay"></div>
+
+<!-- Settings Panel -->
+<div class="settings-panel" id="settings-panel">
+    <div class="settings-header">
+        <h2>Settings</h2>
+        <button class="settings-close" id="settings-close" aria-label="Close settings">✕</button>
+    </div>
+
+    <div class="settings-content">
+
+        <!-- Display Section -->
+        <div class="settings-section">
+            <h3>Display</h3>
+            <div class="settings-group">
+                <button class="settings-button" id="fullscreen-toggle-btn">Enter Full Screen</button>
+            </div>
+        </div>
+
+        <!-- Layout Management Section -->
+        <div class="settings-section">
+            <h3>Layout Management</h3>
+            <div class="settings-group">
+                <button class="settings-button" id="save-layout-btn">Save Current Layout</button>
+                <button class="settings-button" id="reset-layout-btn">Reset to Default</button>
+                <button class="settings-button" id="center-controls-btn">Center All Controls</button>
+            </div>
+        </div>
+
+        <!-- Template System Section -->
+        <div class="settings-section">
+            <h3>Templates</h3>
+            <div class="settings-group">
+                <div class="settings-row">
+                    <label class="settings-label">Select Template:</label>
+                    <select id="template-select-settings" class="settings-select"></select>
+                </div>
+                <button class="settings-button" id="new-template-btn">Create New</button>
+                <button class="settings-button danger" id="delete-template-btn">Delete</button>
+            </div>
+        </div>
+
+        <!-- Visibility Controls Section -->
+        <div class="settings-section">
+            <h3>Control Visibility</h3>
+            <div class="visibility-controls">
+                <div class="visibility-item">
+                    <input type="checkbox" id="vis-left-stick" class="visibility-checkbox" checked>
+                        <label class="settings-label" for="vis-left-stick">Left Joystick</label>
+                </div>
+                <div class="visibility-item">
+                    <input type="checkbox" id="vis-right-stick" class="visibility-checkbox" checked>
+                        <label class="settings-label" for="vis-right-stick">Right Joystick</label>
+                </div>
+                <div class="visibility-item">
+                    <input type="checkbox" id="vis-dpad" class="visibility-checkbox" checked>
+                        <label class="settings-label" for="vis-dpad">D-Pad</label>
+                </div>
+                <div class="visibility-item">
+                    <input type="checkbox" id="vis-face-buttons" class="visibility-checkbox" checked>
+                        <label class="settings-label" for="vis-face-buttons">Face Buttons (A/B/X/Y)</label>
+                </div>
+                <div class="visibility-item">
+                    <input type="checkbox" id="vis-shoulders" class="visibility-checkbox" checked>
+                        <label class="settings-label" for="vis-shoulders">Shoulder Buttons (L1/L2/R1/R2)</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scale Controls Section -->
+        <div class="settings-section">
+            <h3>Global Scaling</h3>
+            <div class="settings-group">
+                <div class="settings-row">
+                    <label class="settings-label">Button Size:</label>
+                    <span class="slider-value" id="button-scale-value">100%</span>
+                </div>
+                <input type="range" id="button-scale" class="settings-range" min="50" max="150" value="100">
+
+                    <div class="settings-row">
+                        <label class="settings-label">Joystick Size:</label>
+                        <span class="slider-value" id="joystick-scale-value">100%</span>
+                    </div>
+                    <input type="range" id="joystick-scale" class="settings-range" min="50" max="150" value="100">
+
+                        <div class="settings-row">
+                            <label class="settings-label">D-Pad Size:</label>
+                            <span class="slider-value" id="dpad-scale-value">100%</span>
+                        </div>
+                        <input type="range" id="dpad-scale" class="settings-range" min="50" max="150" value="100">
+
+                            <div class="settings-row">
+                                <label class="settings-label">Shoulder Buttons Size:</label>
+                                <span class="slider-value" id="button-set-scale-value">100%</span>
+                            </div>
+                            <input type="range" id="button-set-scale" class="settings-range" min="50" max="150" value="100">
+            </div>
+        </div>
+
+
+
+        <!-- Fine Position Adjustment Section -->
+        <div class="settings-section">
+            <h3>Fine Position Control</h3>
+            <div class="settings-group">
+                <p class="settings-label" style="margin: 0; font-size: 0.75rem; opacity: 0.7;">Move selected control:</p>
+                <div class="arrow-buttons">
+                    <div></div>
+                    <button class="arrow-btn" id="arrow-up" title="Move up">↑</button>
+                    <div></div>
+                    <button class="arrow-btn" id="arrow-left" title="Move left">←</button>
+                    <button class="arrow-btn" id="arrow-center" title="Center">●</button>
+                    <button class="arrow-btn" id="arrow-right" title="Move right">→</button>
+                    <div></div>
+                    <button class="arrow-btn" id="arrow-down" title="Move down">↓</button>
+                    <div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import/Export Section -->
+        <div class="settings-section">
+            <h3>Import / Export</h3>
+            <div class="settings-group">
+                <button class="settings-button" id="export-layout-btn">Export as JSON</button>
+                <button class="settings-button" id="import-layout-btn">Import from JSON</button>
+                <input type="file" id="import-file-settings" accept=".json" style="display: none;">
+            </div>
+        </div>
+
+        <!-- Edit Mode Toggle -->
+        <div class="settings-section">
+            <h3>Editor</h3>
+            <div class="settings-group">
+                <button class="settings-button" id="edit-mode-btn">Enable Edit Mode</button>
+                <p class="settings-label" style="margin: 0.5rem 0 0 0; font-size: 0.75rem; opacity: 0.7;">
+                    Edit mode allows you to drag and resize controls.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="controller">
+    <section class="panel" aria-label="Left controller">
+        <div class="top-row">
+            <div class="button-set editable" data-layout-id="left-shoulders">
+                <button class="btn" data-button="L2">L2</button>
+                <button class="btn" data-button="L1">L1</button>
+            </div>
+        </div>
+
+        <div class="stick-container editable" data-layout-id="left-stick">
+            <div class="stick" id="left-stick" aria-label="Left analog stick">
+                <div class="thumb" id="left-thumb"></div>
+            </div>
+        </div>
+
+        <div>
+            <div class="dpad editable" role="group" aria-label="D-pad" data-layout-id="dpad">
+                <button disabled aria-hidden="true"></button>
+                <button class="btn" data-button="Up"></button>
+                <button disabled aria-hidden="true"></button>
+                <button class="btn" data-button="Left"></button>
+                <button disabled aria-hidden="true"></button>
+                <button class="btn" data-button="Right"></button>
+                <button disabled aria-hidden="true"></button>
+                <button class="btn" data-button="Down"></button>
+                <button disabled aria-hidden="true"></button>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel" aria-label="Right controller">
+        <div class="top-row">
+            <div class="button-set editable" data-layout-id="right-shoulders">
+                <button class="btn" data-button="R1">R1</button>
+                <button class="btn" data-button="R2">R2</button>
+            </div>
+        </div>
+
+        <div class="stick-container editable" data-layout-id="right-stick">
+            <div class="stick" id="right-stick" aria-label="Right analog stick">
+                <div class="thumb" id="right-thumb"></div>
+            </div>
+        </div>
+
+        <div>
+            <div class="face-buttons editable" role="group" aria-label="Face buttons" data-layout-id="face-buttons">
+                <button class="btn btn-a" data-button="A">A</button>
+                <button class="btn btn-b" data-button="B">B</button>
+                <button class="btn btn-x" data-button="X">X</button>
+                <button class="btn btn-y" data-button="Y">Y</button>
+            </div>
+        </div>
+    </section>
+
+    <div class="system-buttons" data-layout-id="system-buttons" role="group" aria-label="System buttons">
+        <button class="btn sys-btn" data-button="Select">Select</button>
+        <button class="btn sys-btn" data-button="Start">Start</button>
+    </div>
+
+    <div class="home-button" data-layout-id="home-button" role="button" aria-label="Home">
+        <button class="btn home-btn" data-button="Home">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" aria-hidden="true">
+                <path d="M 25 2 C 20.709 2 16.618563 3.2007813 13.226562 5.3007812 C 13.007563 5.3737813 12.629156 5.6617969 12.285156 5.9667969 C 15.330156 3.5477969 22.371734 8.3929375 24.427734 9.8359375 C 24.773734 10.078938 25.228219 10.078938 25.574219 9.8359375 C 27.630219 8.3929375 34.671797 3.5467969 37.716797 5.9667969 C 37.372797 5.6617969 36.993391 5.3737813 36.775391 5.3007812 C 33.382391 3.2007813 29.291 2 25 2 z M 11 8 C 9.403 8 8.2363281 9.3007812 8.2363281 9.3007812 C 4.4443281 13.400781 2.0507812 18.9 2.0507812 25 C 2.0507812 37.7 12.328 48 25 48 C 31.685 48 37.771891 45.1 41.962891 40.5 C 41.962891 40.5 41.464094 37.499609 38.371094 33.099609 C 34.912094 27.882609 27.905109 21.311922 25.662109 19.294922 C 25.279109 18.950922 24.708125 18.952781 24.328125 19.300781 C 22.638125 20.847781 18.277406 25.177781 17.316406 26.300781 C 15.021406 28.700781 8.6353281 36.299609 8.2363281 40.599609 C 8.2363281 40.599609 6.8386406 37.200391 9.9316406 29.400391 C 11.856641 24.714391 17.835375 17.747984 20.734375 14.708984 C 21.119375 14.305984 21.110125 13.669109 20.703125 13.287109 C 19.743125 12.388109 17.505281 10.812609 15.488281 9.5996094 C 14.092281 8.6996094 12.497 8.1 11 8 z M 38.689453 8 C 38.036453 8 33.794078 9.3428281 29.330078 13.298828 C 28.908078 13.672828 28.891203 14.325469 29.283203 14.730469 C 30.900203 16.401469 35.322656 20.681391 37.972656 24.900391 C 41.265656 30.300391 43.2605 34.6 42.0625 40.5 C 45.7545 36.4 48.050781 31 48.050781 25 C 47.950781 19 45.655281 13.500391 41.863281 9.4003906 C 41.763281 9.3003906 41.663453 9.1996094 41.564453 9.0996094 C 40.766453 8.1996094 39.587453 8 38.689453 8 z"></path>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<div class="hint">Touch and drag the sticks; hold buttons to send input.</div>

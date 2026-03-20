@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Web Controller</title>
+  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+
+  <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body>
+<div id="warning">Rotate your device to landscape</div>
+<main id="app"></main>
+
+  <script>
+    const main = document.getElementById('app');
+    const warning = document.getElementById('warning');
+
+    let isLoaded = false;
+    let isLoading = false;
+
+    async function loadContent() {
+      if (isLoaded || isLoading) return;
+      isLoading = true;
+
+      try {
+        // ✅ Updated correct path
+        const res = await fetch('../static/content.html');
+        const html = await res.text();
+        main.innerHTML = html;
+
+        // ✅ Load controller.js only once
+        if (!document.querySelector('script[data-controller]')) {
+          const script = document.createElement('script');
+          script.src = '../static/javascript/controller.js';
+          script.defer = true;
+          script.dataset.controller = "true";
+          document.body.appendChild(script);
+        }
+
+        requestAnimationFrame(() => {
+          main.classList.add('visible');
+        });
+
+        isLoaded = true;
+      } catch (err) {
+        main.innerHTML = "<p>Failed to load content</p>";
+      } finally {
+        isLoading = false;
+      }
+    }
+
+    function handleOrientation() {
+      const isLandscape = window.innerWidth > window.innerHeight;
+
+      if (isLandscape) {
+        warning.classList.add('hidden');
+        loadContent();
+      } else {
+        warning.classList.remove('hidden');
+        // content stays loaded (no unload)
+      }
+    }
+
+    handleOrientation();
+
+    window.addEventListener('resize', handleOrientation);
+    window.addEventListener('orientationchange', handleOrientation);
+  </script>
+
+</body>
+</html>
