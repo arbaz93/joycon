@@ -21,6 +21,16 @@
         "height": 0.32,
         "visible": true
       },
+      "left-stick-dynamic": {
+        "id": "left-stick-dynamic",
+        "type": "joystick",
+        "groupId": "left-stick-dynamic",
+        "x": 0.14,
+        "y": 0.26,
+        "width": 0.32,
+        "height": 0.32,
+        "visible": true
+      },
       "dpad": {
         "id": "dpad",
         "type": "dpad",

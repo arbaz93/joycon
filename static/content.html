@@ -50,7 +50,11 @@
             <div class="visibility-controls">
                 <div class="visibility-item">
                     <input type="checkbox" id="vis-left-stick" class="visibility-checkbox" checked>
-                        <label class="settings-label" for="vis-left-stick">Left Joystick</label>
+                        <label class="settings-label" for="vis-left-stick">Left Joystick (Static)</label>
+                </div>
+                <div class="visibility-item">
+                    <input type="checkbox" id="vis-left-stick-dynamic" class="visibility-checkbox" checked>
+                        <label class="settings-label" for="vis-left-stick-dynamic">Left Joystick (Dynamic)</label>
                 </div>
                 <div class="visibility-item">
                     <input type="checkbox" id="vis-right-stick" class="visibility-checkbox" checked>
@@ -153,8 +157,13 @@
                 <button class="btn" data-button="L1">L1</button>
             </div>
         </div>
+        <div class="stick-container editable" data-stick-type="dynamic" id="dynamic" data-layout-id="left-stick-dynamic">
+            <div class="playground dynamic editable" id="left-stick" aria-label="Left analog stick" >
+               <virtual-joystick class="thumb" id="left-thumb" data-mode="dynamic"></virtual-joystick>
+            </div>
+        </div>
 
-        <div class="stick-container editable" data-layout-id="left-stick">
+        <div class="stick-container editable" data-stick-type="static" data-layout-id="left-stick">
             <div class="stick" id="left-stick" aria-label="Left analog stick">
                 <div class="thumb" id="left-thumb"></div>
             </div>
@@ -183,7 +192,7 @@
             </div>
         </div>
 
-        <div class="stick-container editable" data-layout-id="right-stick">
+        <div class="stick-container editable" data-stick-type="static" data-layout-id="right-stick">
             <div class="stick" id="right-stick" aria-label="Right analog stick">
                 <div class="thumb" id="right-thumb"></div>
             </div>
