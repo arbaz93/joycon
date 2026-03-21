@@ -63,7 +63,7 @@ def index():
 # =========================
 
 @socketio.on('connect')
-def handle_connect():
+def handle_connect(auth=None):
     sid = request.sid
 
     if len(devices) >= MAX_PLAYERS:

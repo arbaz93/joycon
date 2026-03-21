@@ -60,6 +60,7 @@
 
     const templateStorageKey = 'webcontroller-layout-templates-v7';
     const defaultTemplateName = 'Default';
+    const smallMobileTemplateName = 'Default Small Mobile';
     const immutableTemplates = new Set([defaultTemplateName]);
     const defaultTemplateUrl = '/static/default-template.json';
     let bundledTemplates = null;
@@ -75,6 +76,26 @@
     let selectionMode = 'single'; // 'single' or 'group'
     let pointerInfo = null;
     let longPressTimeout = null;
+
+    const isSmallMobileViewport = () => {
+    const shortEdge = Math.min(window.innerWidth, window.innerHeight);
+    const longEdge = Math.max(window.innerWidth, window.innerHeight);
+    return shortEdge <= 430 && longEdge <= 932;
+};
+
+    const getPreferredDefaultTemplateName = (availableTemplates = templates) => {
+    if (isSmallMobileViewport() && availableTemplates[smallMobileTemplateName]) {
+    return smallMobileTemplateName;
+}
+    if (availableTemplates[defaultTemplateName]) {
+    return defaultTemplateName;
+}
+    const bundledDefaultName = Array.from(immutableTemplates).find((name) => availableTemplates[name]);
+    if (bundledDefaultName) {
+    return bundledDefaultName;
+}
+    return Object.keys(availableTemplates)[0] || defaultTemplateName;
+};
 
 
     const loadTemplates = () => {
@@ -258,7 +279,7 @@
     const deleteTemplate = (name) => {
     if (!templates[name]) return;
     if (immutableTemplates.has(name)) {
-    showToast('Default template cannot be deleted', 2500, true);
+    showToast('Built-in template cannot be deleted', 2500, true);
     return;
 }
     delete templates[name];
@@ -343,7 +364,7 @@
 
     const setEditMode = (on) => {
     if (on && immutableTemplates.has(currentTemplate)) {
-    showToast('Default template is locked. Create a new template to edit.', 3000, true);
+    showToast('Built-in template is locked. Create a new template to edit.', 3000, true);
     return;
 }
     isEditMode = on;
@@ -1461,9 +1482,60 @@
     'right-shoulders': 'vis-shoulders',
 };
 
+    const setControlVisibility = (layoutId, visible) => {
+    const el = document.querySelector(`[data-layout-id="${layoutId}"]`);
+    if (el && layoutState[layoutId]) {
+    layoutState[layoutId].visible = visible;
+    if (visible) {
+    el.classList.remove('hidden');
+} else {
+    el.classList.add('hidden');
+}
+}
+};
+
+    const applyLeftStickMode = (mode, options = {}) => {
+    const {
+    persist = true,
+    notify = true,
+    haptic = true,
+} = options;
+    const showStatic = mode !== 'dynamic';
+    const staticCheckbox = document.getElementById('vis-left-stick');
+    const dynamicCheckbox = document.getElementById('vis-left-stick-dynamic');
+
+    if (staticCheckbox) staticCheckbox.checked = showStatic;
+    if (dynamicCheckbox) dynamicCheckbox.checked = !showStatic;
+
+    setControlVisibility('left-stick', showStatic);
+    setControlVisibility('left-stick-dynamic', !showStatic);
+
+    if (persist && !immutableTemplates.has(currentTemplate)) {
+    templates[currentTemplate] = deepClone(layoutState);
+    saveTemplates();
+}
+
+    if (notify) {
+    showToast(`Left Joystick (${showStatic ? 'Static' : 'Dynamic'}) shown`);
+}
+    if (haptic) {
+    triggerHaptic(15);
+}
+};
+
     // Update visibility checkboxes from layout state
     const syncVisibilityCheckboxes = () => {
+    const staticVisible = layoutState['left-stick']?.visible !== false;
+    const dynamicVisible = layoutState['left-stick-dynamic']?.visible !== false;
+    const showStatic = staticVisible || !dynamicVisible;
+    applyLeftStickMode(showStatic ? 'static' : 'dynamic', {
+        persist: false,
+        notify: false,
+        haptic: false,
+    });
+
     Object.entries(visibilityCheckboxMap).forEach(([layoutId, checkboxId]) => {
+        if (layoutId === 'left-stick' || layoutId === 'left-stick-dynamic') return;
         const checkbox = document.getElementById(checkboxId);
         if (checkbox) {
             const visible = layoutState[layoutId]?.visible !== false;
@@ -1478,22 +1550,22 @@
     if (!checkbox) return;
 
     checkbox.addEventListener('change', () => {
+    if (checkboxId === 'vis-left-stick') {
+    applyLeftStickMode(checkbox.checked ? 'static' : 'dynamic');
+    return;
+}
+    if (checkboxId === 'vis-left-stick-dynamic') {
+    applyLeftStickMode(checkbox.checked ? 'dynamic' : 'static');
+    return;
+}
+
     const visible = checkbox.checked;
     const affectedIds = Object.keys(visibilityCheckboxMap).filter(
     (id) => visibilityCheckboxMap[id] === checkboxId
     );
 
     affectedIds.forEach((layoutId) => {
-    const el = document.querySelector(`[data-layout-id="${layoutId}"]`);
-    if (el && layoutState[layoutId]) {
-    layoutState[layoutId].visible = visible;
-    if (visible) {
-    el.classList.remove('hidden');
-} else {
-    el.classList.add('hidden');
-}
-}
-
+    setControlVisibility(layoutId, visible);
 });
 
     if (!immutableTemplates.has(currentTemplate)) {
@@ -1652,7 +1724,7 @@
     // Settings button handlers
     document.getElementById('save-layout-btn').addEventListener('click', () => {
     if (immutableTemplates.has(currentTemplate)) {
-    showToast('Default template is locked. Create a new template to save changes.', 3000, true);
+    showToast('Built-in template is locked. Create a new template to save changes.', 3000, true);
     return;
 }
     templates[currentTemplate] = deepClone(layoutState);
@@ -1663,10 +1735,11 @@
 
     document.getElementById('reset-layout-btn').addEventListener('click', () => {
     if (confirm('Reset layout to default? This cannot be undone.')) {
-    setCurrentTemplate(defaultTemplateName);
+    const preferredTemplate = getPreferredDefaultTemplateName();
+    setCurrentTemplate(preferredTemplate);
     updateSettingsTemplateSelect();
     syncVisibilityCheckboxes();
-    showToast('Switched to locked Default template');
+    showToast(`Switched to locked "${preferredTemplate}" template`);
     triggerHaptic(25);
 }
 });
@@ -1770,6 +1843,8 @@
     const bundled = await loadBundledTemplates();
     if (bundled?.templates) {
     bundledTemplates = bundled.templates;
+    immutableTemplates.clear();
+    Object.keys(bundledTemplates).forEach((name) => immutableTemplates.add(name));
 }
 
     const stored = loadTemplates();
@@ -1778,13 +1853,20 @@
     currentTemplate = stored.currentTemplate || defaultTemplateName;
 } else if (bundledTemplates) {
     templates = deepClone(bundledTemplates);
-    currentTemplate = defaultTemplateName;
+    currentTemplate = getPreferredDefaultTemplateName(templates);
 } else {
     createDefaultTemplates();
 }
 
-    if (bundledTemplates && bundledTemplates[defaultTemplateName]) {
-    templates[defaultTemplateName] = deepClone(bundledTemplates[defaultTemplateName]);
+    if (bundledTemplates) {
+    templates = {
+    ...templates,
+    ...deepClone(bundledTemplates),
+};
+}
+
+    if (!templates[currentTemplate]) {
+    currentTemplate = getPreferredDefaultTemplateName(templates);
 }
 
     updateTemplateSelect();
