@@ -250,18 +250,26 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.stick-container {
+.stick-container[data-stick-type="static"] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1 / 1;
+    width: auto;
+}
+.stick-container[data-stick-type="dynamic"] {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
+    width: 40%;
     aspect-ratio: 1 / 1;
     max-width: clamp(120px, 22vw, 160px);
     min-width: 90px;
+    
 }
-
-.stick {
+.stick-container[data-stick-type="static"] .stick {
     width: 100%;
     height: 100%;
     aspect-ratio: 1 / 1;
@@ -274,11 +282,11 @@ body {
     cursor: grab;
 }
 
-.stick:active {
+.stick-container[data-stick-type="static"] .stick:active {
     cursor: grabbing;
 }
 
-.thumb {
+.stick-container[data-stick-type="static"] .stick .thumb {
     position: absolute;
     width: 36%;
     height: 36%;

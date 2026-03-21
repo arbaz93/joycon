@@ -39,6 +39,7 @@
     'left-shoulders': { type: 'trigger', groupId: 'shoulders' },
     'right-shoulders': { type: 'trigger', groupId: 'shoulders' },
     'left-stick': { type: 'joystick', groupId: 'left-stick' },
+    'left-stick-dynamic': { type: 'joystick', groupId: 'left-stick-dynamic' },
     'right-stick': { type: 'joystick', groupId: 'right-stick' },
     'dpad': { type: 'dpad', groupId: 'dpad' },
     'face-buttons': { type: 'button-group', groupId: 'face-buttons' },
@@ -49,6 +50,7 @@
     const controlGroups = {
     shoulders: ['left-shoulders', 'right-shoulders'],
     'left-stick': ['left-stick'],
+    'left-stick-dynamic': ['left-stick-dynamic'],
     'right-stick': ['right-stick'],
     dpad: ['dpad'],
     'face-buttons': ['face-buttons'],
@@ -1166,17 +1168,16 @@
 });
 })();
 
-    function setupStick(stickId, thumbId, joystickId) {
-    const stick = document.getElementById(stickId);
-    const thumb = document.getElementById(thumbId);
+    function setupStick(stickRef, thumbRef, joystickId) {
+    const stick = typeof stickRef === 'string' ? document.getElementById(stickRef) : stickRef;
+    const thumb = typeof thumbRef === 'string' ? document.getElementById(thumbRef) : thumbRef;
+    if (!stick || !thumb) return;
     let active = false;
     let activeTouchId = null;
     let rect = null;
     let animFrameId = null;
     let lastEmitTime = 0;
     const emitDebounceMs = 8; // ~120fps - snappier response
-    let pendingUpdate = null;
-
     const normalize = (x, y) => {
     const magnitude = Math.hypot(x, y);
     if (magnitude === 0) return { x: 0, y: 0 };
@@ -1283,7 +1284,88 @@
 });
 }
 
-    setupStick('left-stick', 'left-thumb', 'left');
+    function setupVirtualStick(joystickRef, joystickId) {
+    const joystick = typeof joystickRef === 'string' ? document.getElementById(joystickRef) : joystickRef;
+    if (!joystick) return;
+
+    let active = false;
+    let lastEmitTime = 0;
+    const emitDebounceMs = 8; // ~120fps
+
+    const normalize = (x, y) => {
+    const magnitude = Math.hypot(x, y);
+    if (magnitude === 0) return { x: 0, y: 0 };
+    const max = Math.min(magnitude, 1);
+    const ratio = max / magnitude;
+    return { x: x * ratio, y: y * ratio };
+};
+
+    const readNormalizedFromDataset = () => {
+    const rect = joystick.getBoundingClientRect();
+    const radius = rect.width / 2;
+    const dataX = Number(joystick.dataset.x);
+    const dataY = Number(joystick.dataset.y);
+
+    if (!radius || !Number.isFinite(dataX) || !Number.isFinite(dataY)) {
+    return { x: 0, y: 0 };
+}
+
+    const centerX = rect.left + radius;
+    const centerY = rect.top + radius;
+    const dx = (dataX - centerX) / radius;
+    const dy = (dataY - centerY) / radius;
+    return normalize(dx, dy);
+};
+
+    const emitJoystick = (x, y) => {
+    const now = performance.now();
+    if (now - lastEmitTime >= emitDebounceMs) {
+    socket.emit('joystick', { stick: joystickId, x, y });
+    lastEmitTime = now;
+    if ((Math.abs(x) > 0.5 || Math.abs(y) > 0.5) && active) {
+    triggerHaptic(5);
+}
+}
+};
+
+    joystick.addEventListener('joystickdown', () => {
+    if (isControllerDisabled()) return;
+    active = true;
+    lastEmitTime = 0;
+    const { x, y } = readNormalizedFromDataset();
+    emitJoystick(x, y);
+});
+
+    joystick.addEventListener('joystickmove', () => {
+    if (!active || isControllerDisabled()) return;
+    const { x, y } = readNormalizedFromDataset();
+    emitJoystick(x, y);
+});
+
+    joystick.addEventListener('joystickup', () => {
+    if (!active) return;
+    active = false;
+    socket.emit('joystick', { stick: joystickId, x: 0, y: 0 });
+    triggerHaptic(10);
+});
+}
+
+    const leftDynamicJoystick = document.querySelector(
+    '.stick-container[data-stick-type="dynamic"] virtual-joystick'
+    );
+    setupVirtualStick(leftDynamicJoystick, 'left');
+
+    const leftStaticContainer = document.querySelector(
+    '.stick-container[data-stick-type="static"][data-layout-id="left-stick"]'
+    );
+    if (leftStaticContainer) {
+    setupStick(
+    leftStaticContainer.querySelector('.stick'),
+    leftStaticContainer.querySelector('.thumb'),
+    'left'
+    );
+}
+
     setupStick('right-stick', 'right-thumb', 'right');
 
     // ============================================
@@ -1371,6 +1453,7 @@
     // Map control IDs to visibility checkboxes
     const visibilityCheckboxMap = {
     'left-stick': 'vis-left-stick',
+    'left-stick-dynamic': 'vis-left-stick-dynamic',
     'right-stick': 'vis-right-stick',
     'dpad': 'vis-dpad',
     'face-buttons': 'vis-face-buttons',
@@ -1390,7 +1473,7 @@
 };
 
     // Handle visibility checkbox changes
-    Object.values(visibilityCheckboxMap).forEach((checkboxId) => {
+    Array.from(new Set(Object.values(visibilityCheckboxMap))).forEach((checkboxId) => {
     const checkbox = document.getElementById(checkboxId);
     if (!checkbox) return;
 

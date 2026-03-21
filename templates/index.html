@@ -7,6 +7,8 @@
   <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
 
   <link rel="stylesheet" href="../static/css/styles.css">
+  <link rel="stylesheet" href="../static/css/joystick.css">
+
 </head>
 <body>
 <div id="warning">Rotate your device to landscape</div>
@@ -29,13 +31,21 @@
         const html = await res.text();
         main.innerHTML = html;
 
-        // ✅ Load controller.js only once
         if (!document.querySelector('script[data-controller]')) {
+          // ✅ Load controller.js only once
           const script = document.createElement('script');
           script.src = '../static/javascript/controller.js';
           script.defer = true;
           script.dataset.controller = "true";
           document.body.appendChild(script);
+
+          // ✅ Load vitual-joystick.js only once
+
+          const joyScript = document.createElement('script');
+          joyScript.src = '../static/javascript/virtual-joystick.js';
+          joyScript.defer = true;
+          joyScript.dataset.controller = "true";
+          document.body.appendChild(joyScript);
         }
 
         requestAnimationFrame(() => {
@@ -67,6 +77,10 @@
     window.addEventListener('resize', handleOrientation);
     window.addEventListener('orientationchange', handleOrientation);
   </script>
+
+
+
+  <!-- Virtual joystick script -->
 
 </body>
 </html>
