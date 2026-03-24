@@ -1,0 +1,7 @@
+.env
+.env.local
+server-backup.py
+tak-arcs.png
+venv
+__pycache__
+server.log

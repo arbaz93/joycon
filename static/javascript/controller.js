@@ -1322,13 +1322,42 @@
 };
 
     const readNormalizedFromDataset = () => {
-    const rect = joystick.getBoundingClientRect();
-    const radius = rect.width / 2;
+    // Batocera browsers can report shadow-slot geometry inconsistently.
+    // Use host element geometry as the primary coordinate frame and only
+    // fall back to the shadow slot when both frames look valid and close.
+    const hostRect = joystick.getBoundingClientRect();
+    const baseEl = joystick.shadowRoot?.querySelector('slot');
+    const slotRect = baseEl?.getBoundingClientRect?.() || null;
     const dataX = Number(joystick.dataset.x);
     const dataY = Number(joystick.dataset.y);
 
-    if (!radius || !Number.isFinite(dataX) || !Number.isFinite(dataY)) {
+    if (!Number.isFinite(dataX) || !Number.isFinite(dataY)) {
     return { x: 0, y: 0 };
+}
+
+    const hostRadius = Math.min(hostRect.width, hostRect.height) / 2;
+    if (!hostRadius) {
+    return { x: 0, y: 0 };
+}
+    const hostCenterX = hostRect.left + hostRadius;
+    const hostCenterY = hostRect.top + hostRadius;
+
+    let rect = hostRect;
+    let radius = hostRadius;
+    if (slotRect && slotRect.width > 0 && slotRect.height > 0) {
+    const slotRadius = Math.min(slotRect.width, slotRect.height) / 2;
+    const slotCenterX = slotRect.left + slotRadius;
+    const slotCenterY = slotRect.top + slotRadius;
+
+    // Accept slot coordinates only when they are near the host frame.
+    if (
+    slotRadius > 0 &&
+    Math.abs(slotCenterX - hostCenterX) <= hostRadius &&
+    Math.abs(slotCenterY - hostCenterY) <= hostRadius
+    ) {
+    rect = slotRect;
+    radius = slotRadius;
+}
 }
 
     const centerX = rect.left + radius;
