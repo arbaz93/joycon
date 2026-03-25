@@ -1,17 +1,26 @@
-    // ============================================
-    // Performance Optimizations:
-    // ============================================
-    // 1. requestAnimationFrame: Joystick updates are synced to browser frames (60fps max)
-    // 2. Debounced emissions: Socket.io events throttled to ~60fps to reduce network chatter
-    // 3. Haptic feedback: Uses Vibration API for tactile feedback on button press/release
-    // 4. touch-action: none: Prevents browser default touch behaviors (scroll, zoom)
-    // 5. Passive event listeners: Used where possible to improve scroll performance
-    // 6. Immediate preventDefault(): Reduces input latency by preventing default actions early
-    // 7. Optimized DOM queries: Cached element references to avoid repeated lookups
-    // ============================================
+    /**
+     * FILE OVERVIEW:
+     * Main controller runtime for input handling, editable layout templates,
+     * settings panel behavior, and Socket.IO event emission.
+     *
+     * NOTE: This file intentionally consolidates all runtime behavior.
+     * TODO: Split into focused modules (layout, input, settings, transport).
+     *
+     * Performance notes:
+     * - requestAnimationFrame loops are used for active control streams.
+     * - Socket messages are rate-limited to reduce network chatter.
+     * - Passive listeners are used where they do not affect gesture control.
+     */
 
     const socket = io();
 
+    /**
+     * Attempt to lock screen orientation to landscape.
+     *
+     * @returns {void}
+     * @sideEffects Registers first-gesture listeners and may call
+     * `screen.orientation.lock`.
+     */
     const enforceLandscape = () => {
     const tryLock = async () => {
     try {
@@ -60,6 +69,7 @@
 
     const templateStorageKey = 'webcontroller-layout-templates-v7';
     const defaultTemplateName = 'Default';
+    const smallMobileTemplateName = 'Default Small Mobile';
     const immutableTemplates = new Set([defaultTemplateName]);
     const defaultTemplateUrl = '/static/default-template.json';
     let bundledTemplates = null;
@@ -76,7 +86,33 @@
     let pointerInfo = null;
     let longPressTimeout = null;
 
+    const isSmallMobileViewport = () => {
+    const shortEdge = Math.min(window.innerWidth, window.innerHeight);
+    const longEdge = Math.max(window.innerWidth, window.innerHeight);
+    return shortEdge <= 430 && longEdge <= 932;
+};
 
+    const getPreferredDefaultTemplateName = (availableTemplates = templates) => {
+    if (isSmallMobileViewport() && availableTemplates[smallMobileTemplateName]) {
+    return smallMobileTemplateName;
+}
+    if (availableTemplates[defaultTemplateName]) {
+    return defaultTemplateName;
+}
+    const bundledDefaultName = Array.from(immutableTemplates).find((name) => availableTemplates[name]);
+    if (bundledDefaultName) {
+    return bundledDefaultName;
+}
+    return Object.keys(availableTemplates)[0] || defaultTemplateName;
+};
+
+
+    /**
+     * Load persisted layout templates from localStorage.
+     *
+     * @returns {{templates: Object, currentTemplate: string}|null}
+     * @sideEffects None.
+     */
     const loadTemplates = () => {
     try {
     const stored = localStorage.getItem(templateStorageKey);
@@ -88,6 +124,12 @@
 }
 };
 
+    /**
+     * Fetch bundled template JSON shipped in static assets.
+     *
+     * @returns {Promise<Object|null>}
+     * @sideEffects Performs an HTTP fetch to static template endpoint.
+     */
     const loadBundledTemplates = async () => {
     try {
     const res = await fetch(defaultTemplateUrl, { cache: 'no-store' });
@@ -99,6 +141,12 @@
 }
 };
 
+    /**
+     * Persist runtime templates/current selection to localStorage.
+     *
+     * @returns {void}
+     * @sideEffects Writes serialized data into browser localStorage.
+     */
     const saveTemplates = () => {
     localStorage.setItem(templateStorageKey, JSON.stringify({
         templates,
@@ -258,7 +306,7 @@
     const deleteTemplate = (name) => {
     if (!templates[name]) return;
     if (immutableTemplates.has(name)) {
-    showToast('Default template cannot be deleted', 2500, true);
+    showToast('Built-in template cannot be deleted', 2500, true);
     return;
 }
     delete templates[name];
@@ -293,7 +341,7 @@
 
     const importLayout = (file) => {
     if (!file || !file.name.endsWith('.json')) {
-    alert('Please select a valid JSON file');
+    showToast('Please select a valid JSON file', 3000, true);
     triggerHaptic(50);
     return;
 }
@@ -304,7 +352,7 @@
     const importedData = JSON.parse(e.target.result);
 
     if (!importedData.templates || typeof importedData.templates !== 'object') {
-    alert('Invalid layout file format');
+    showToast('Invalid layout file format', 3000, true);
     triggerHaptic(50);
     return;
 }
@@ -324,17 +372,17 @@
     updateTemplateSelect();
     saveTemplates();
 
-    alert(`Successfully imported ${importCount} template(s)!`);
+    showToast(`Successfully imported ${importCount} template(s)!`);
     triggerHaptic(40);
 } catch (error) {
     console.error('Failed to import layout:', error);
-    alert('Failed to import layout. Please check the file format.');
+    showToast('Failed to import layout. Please check the file format.', 3500, true);
     triggerHaptic(50);
 }
 };
 
     reader.onerror = () => {
-    alert('Failed to read file');
+    showToast('Failed to read file', 3000, true);
     triggerHaptic(50);
 };
 
@@ -343,7 +391,7 @@
 
     const setEditMode = (on) => {
     if (on && immutableTemplates.has(currentTemplate)) {
-    showToast('Default template is locked. Create a new template to edit.', 3000, true);
+    showToast('Built-in template is locked. Create a new template to edit.', 3000, true);
     return;
 }
     isEditMode = on;
@@ -644,8 +692,7 @@
     info.visible = !info.visible;
     layoutState[id] = info;
     el.classList.toggle('hidden', !info.visible);
-        syncVisibilityCheckboxes()
-        console.log("visibilty sync")
+        syncVisibilityCheckboxes();
     if (!immutableTemplates.has(currentTemplate)) {
     templates[currentTemplate] = deepClone(layoutState);
     saveTemplates();
@@ -893,6 +940,9 @@
     (() => {
     const dpad = document.querySelector('[data-layout-id="dpad"]');
     if (!dpad) return;
+    const dpadButtons = Array.from(dpad.querySelectorAll('button[data-button]'));
+    const DPAD_HIT_PADDING = 30;
+    const DPAD_HIT_SCALE = 1.8;
 
     let activeTouchId = null;
     let activeBtn = null;
@@ -933,6 +983,26 @@
     if (target && target.dataset && target.dataset.button && target.closest('[data-layout-id="dpad"]')) {
     return target;
 }
+    const dpadRect = dpad.getBoundingClientRect();
+    if (
+    clientX < dpadRect.left - DPAD_HIT_PADDING || clientX > dpadRect.right + DPAD_HIT_PADDING ||
+    clientY < dpadRect.top - DPAD_HIT_PADDING || clientY > dpadRect.bottom + DPAD_HIT_PADDING
+    ) {
+    return null;
+}
+
+    const nearest = dpadButtons
+    .map((btn) => {
+    const rect = btn.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const radius = Math.max(1, Math.min(rect.width, rect.height) / 2);
+    const distance = Math.hypot(clientX - cx, clientY - cy);
+    return { btn, normalizedDistance: distance / radius };
+})
+    .sort((a, b) => a.normalizedDistance - b.normalizedDistance)[0];
+
+    if (nearest && nearest.normalizedDistance <= DPAD_HIT_SCALE) return nearest.btn;
     return null;
 };
 
@@ -994,88 +1064,178 @@
 });
 })();
 
-    // Face buttons slide support (drag across A/B/X/Y)
+    // Face buttons support multi-touch/chords and slide across A/B/X/Y.
     (() => {
     const face = document.querySelector('[data-layout-id="face-buttons"]');
     if (!face) return;
 
-    let activeTouchId = null;
-    let activeBtn = null;
+    const faceButtons = Array.from(face.querySelectorAll('button[data-button]'));
+    const pressedCounts = new Map();
+    const touchBindings = new Map();
     let mouseDown = false;
+    let mouseBindings = new Set();
 
-    const setBtn = (btnEl) => {
-    if (btnEl === activeBtn) return;
-    if (activeBtn) {
-    activeBtn.classList.remove('active');
-    releaseButton(activeBtn.dataset.button);
+    const activateButton = (btnEl) => {
+    const name = btnEl?.dataset?.button;
+    if (!name) return;
+    const nextCount = (pressedCounts.get(name) || 0) + 1;
+    pressedCounts.set(name, nextCount);
+    if (nextCount === 1) {
+    btnEl.classList.add('active');
+    pressButton(name);
 }
-    if (btnEl) {
-    activeBtn = btnEl;
-    activeBtn.classList.add('active');
-    pressButton(activeBtn.dataset.button);
+};
+
+    const deactivateButton = (btnEl) => {
+    const name = btnEl?.dataset?.button;
+    if (!name) return;
+    const nextCount = Math.max(0, (pressedCounts.get(name) || 0) - 1);
+    if (nextCount === 0) {
+    pressedCounts.delete(name);
+    btnEl.classList.remove('active');
+    releaseButton(name);
 } else {
-    activeBtn = null;
+    pressedCounts.set(name, nextCount);
 }
 };
 
-    const buttonFromPoint = (clientX, clientY) => {
+    const resolveButtonsAtPoint = (clientX, clientY) => {
+    const FACE_HIT_PADDING = 28;
+    const PRIMARY_HIT_SCALE = 1.55;
+    const SECONDARY_HIT_SCALE = 1.5;
+    const faceRect = face.getBoundingClientRect();
+    if (
+    clientX < faceRect.left - FACE_HIT_PADDING || clientX > faceRect.right + FACE_HIT_PADDING ||
+    clientY < faceRect.top - FACE_HIT_PADDING || clientY > faceRect.bottom + FACE_HIT_PADDING
+    ) {
+    return new Set();
+}
+
+    const ranked = faceButtons
+    .map((btn) => {
+    const rect = btn.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const radius = Math.max(1, Math.min(rect.width, rect.height) / 2);
+    const distance = Math.hypot(clientX - cx, clientY - cy);
+    return { btn, distance, normalizedDistance: distance / radius };
+})
+    .sort((a, b) => a.distance - b.distance);
+
+    if (!ranked.length) return new Set();
+
+    const selected = new Set();
     const target = document.elementFromPoint(clientX, clientY);
-    if (target && target.dataset && target.dataset.button && target.closest('[data-layout-id="face-buttons"]')) {
-    return target;
+    const targetButton = (
+    target &&
+    target.dataset &&
+    target.dataset.button &&
+    target.closest('[data-layout-id="face-buttons"]')
+    ) ? target : null;
+
+    const primary = targetButton
+    ? ranked.find((entry) => entry.btn === targetButton) || ranked[0]
+    : ranked[0];
+
+    if (primary.normalizedDistance <= PRIMARY_HIT_SCALE || targetButton) {
+    selected.add(primary.btn);
 }
-    return null;
+
+    // Allow one-finger chord when touching the gap between adjacent face buttons.
+    const secondary = ranked.find((entry) => entry.btn !== primary.btn);
+    if (secondary && primary && secondary.normalizedDistance <= SECONDARY_HIT_SCALE) {
+    const spread = Math.abs(secondary.distance - primary.distance);
+    const spreadLimit = Math.max(24, (primary.distance + secondary.distance) * 0.18);
+    if (spread <= spreadLimit) {
+    selected.add(secondary.btn);
+}
+}
+
+    return selected;
 };
 
-    const endCurrent = () => {
-    if (activeBtn) {
-    activeBtn.classList.remove('active');
-    releaseButton(activeBtn.dataset.button);
-    activeBtn = null;
+    const setTouchButtons = (touchId, nextButtons) => {
+    const prevButtons = touchBindings.get(touchId) || new Set();
+    prevButtons.forEach((btn) => {
+    if (!nextButtons.has(btn)) deactivateButton(btn);
+});
+    nextButtons.forEach((btn) => {
+    if (!prevButtons.has(btn)) activateButton(btn);
+});
+
+    if (nextButtons.size) {
+    touchBindings.set(touchId, nextButtons);
+} else {
+    touchBindings.delete(touchId);
 }
-    activeTouchId = null;
+};
+
+    const clearTouchButtons = (touchId) => {
+    const prevButtons = touchBindings.get(touchId);
+    if (!prevButtons) return;
+    prevButtons.forEach((btn) => deactivateButton(btn));
+    touchBindings.delete(touchId);
+};
+
+    const setMouseButtons = (nextButtons) => {
+    mouseBindings.forEach((btn) => {
+    if (!nextButtons.has(btn)) deactivateButton(btn);
+});
+    nextButtons.forEach((btn) => {
+    if (!mouseBindings.has(btn)) activateButton(btn);
+});
+    mouseBindings = nextButtons;
+};
+
+    const clearMouseButtons = () => {
+    mouseBindings.forEach((btn) => deactivateButton(btn));
+    mouseBindings = new Set();
 };
 
     face.addEventListener('touchstart', (e) => {
     if (isControllerDisabled()) return;
-    const t = e.changedTouches[0];
-    activeTouchId = t.identifier;
-    setBtn(buttonFromPoint(t.clientX, t.clientY));
+    Array.from(e.changedTouches).forEach((t) => {
+    setTouchButtons(t.identifier, resolveButtonsAtPoint(t.clientX, t.clientY));
+});
     e.preventDefault();
 }, { passive: false });
 
     face.addEventListener('touchmove', (e) => {
-    if (activeTouchId === null || isControllerDisabled()) return;
-    const touch = Array.from(e.touches).find((t) => t.identifier === activeTouchId);
-    if (!touch) return;
-    setBtn(buttonFromPoint(touch.clientX, touch.clientY));
+    if (isControllerDisabled()) return;
+    Array.from(e.changedTouches).forEach((t) => {
+    setTouchButtons(t.identifier, resolveButtonsAtPoint(t.clientX, t.clientY));
+});
     e.preventDefault();
 }, { passive: false });
+
+    const endTouches = (touchList) => {
+    Array.from(touchList).forEach((t) => clearTouchButtons(t.identifier));
+};
 
     face.addEventListener('touchend', (e) => {
-    if (activeTouchId === null || isControllerDisabled()) return;
-    const touch = Array.from(e.changedTouches).find((t) => t.identifier === activeTouchId);
-    if (!touch) return;
-    endCurrent();
-    e.preventDefault();
+    endTouches(e.changedTouches);
+    if (!isControllerDisabled()) e.preventDefault();
 }, { passive: false });
 
-    face.addEventListener('touchcancel', () => endCurrent());
+    face.addEventListener('touchcancel', (e) => {
+    endTouches(e.changedTouches);
+});
 
     face.addEventListener('mousedown', (e) => {
     if (isControllerDisabled()) return;
     mouseDown = true;
-    setBtn(buttonFromPoint(e.clientX, e.clientY));
+    setMouseButtons(resolveButtonsAtPoint(e.clientX, e.clientY));
 });
 
     window.addEventListener('mousemove', (e) => {
     if (!mouseDown || isControllerDisabled()) return;
-    setBtn(buttonFromPoint(e.clientX, e.clientY));
+    setMouseButtons(resolveButtonsAtPoint(e.clientX, e.clientY));
 });
 
     window.addEventListener('mouseup', () => {
     if (!mouseDown) return;
     mouseDown = false;
-    endCurrent();
+    clearMouseButtons();
 });
 })();
 
@@ -1090,6 +1250,9 @@
     let activeTouchId = null;
     let activeBtn = null;
     let mouseDown = false;
+    const shoulderButtons = Array.from(groupEl.querySelectorAll('button[data-button]'));
+    const SHOULDER_HIT_PADDING = 28;
+    const SHOULDER_HIT_SCALE = 1.75;
 
     const setBtn = (btnEl) => {
     if (btnEl === activeBtn) return;
@@ -1111,6 +1274,26 @@
     if (target && target.dataset && target.dataset.button && target.closest(`[data-layout-id="${groupEl.dataset.layoutId}"]`)) {
     return target;
 }
+    const groupRect = groupEl.getBoundingClientRect();
+    if (
+    clientX < groupRect.left - SHOULDER_HIT_PADDING || clientX > groupRect.right + SHOULDER_HIT_PADDING ||
+    clientY < groupRect.top - SHOULDER_HIT_PADDING || clientY > groupRect.bottom + SHOULDER_HIT_PADDING
+    ) {
+    return null;
+}
+
+    const nearest = shoulderButtons
+    .map((btn) => {
+    const rect = btn.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const radius = Math.max(1, Math.min(rect.width, rect.height) / 2);
+    const distance = Math.hypot(clientX - cx, clientY - cy);
+    return { btn, normalizedDistance: distance / radius };
+})
+    .sort((a, b) => a.normalizedDistance - b.normalizedDistance)[0];
+
+    if (nearest && nearest.normalizedDistance <= SHOULDER_HIT_SCALE) return nearest.btn;
     return null;
 };
 
@@ -1301,13 +1484,42 @@
 };
 
     const readNormalizedFromDataset = () => {
-    const rect = joystick.getBoundingClientRect();
-    const radius = rect.width / 2;
+    // Batocera browsers can report shadow-slot geometry inconsistently.
+    // Use host element geometry as the primary coordinate frame and only
+    // fall back to the shadow slot when both frames look valid and close.
+    const hostRect = joystick.getBoundingClientRect();
+    const baseEl = joystick.shadowRoot?.querySelector('slot');
+    const slotRect = baseEl?.getBoundingClientRect?.() || null;
     const dataX = Number(joystick.dataset.x);
     const dataY = Number(joystick.dataset.y);
 
-    if (!radius || !Number.isFinite(dataX) || !Number.isFinite(dataY)) {
+    if (!Number.isFinite(dataX) || !Number.isFinite(dataY)) {
     return { x: 0, y: 0 };
+}
+
+    const hostRadius = Math.min(hostRect.width, hostRect.height) / 2;
+    if (!hostRadius) {
+    return { x: 0, y: 0 };
+}
+    const hostCenterX = hostRect.left + hostRadius;
+    const hostCenterY = hostRect.top + hostRadius;
+
+    let rect = hostRect;
+    let radius = hostRadius;
+    if (slotRect && slotRect.width > 0 && slotRect.height > 0) {
+    const slotRadius = Math.min(slotRect.width, slotRect.height) / 2;
+    const slotCenterX = slotRect.left + slotRadius;
+    const slotCenterY = slotRect.top + slotRadius;
+
+    // Accept slot coordinates only when they are near the host frame.
+    if (
+    slotRadius > 0 &&
+    Math.abs(slotCenterX - hostCenterX) <= hostRadius &&
+    Math.abs(slotCenterY - hostCenterY) <= hostRadius
+    ) {
+    rect = slotRect;
+    radius = slotRadius;
+}
 }
 
     const centerX = rect.left + radius;
@@ -1399,6 +1611,7 @@
     const hamburgerMenu = document.getElementById('hamburger-menu');
     const settingsClose = document.getElementById('settings-close');
     const fullscreenBtn = document.getElementById('fullscreen-toggle-btn');
+    const fullscreenBtnNotification = document.querySelector('.fullscreen-toggle-notification-btn');
 
     const openSettingsPanel = () => {
     settingsPanelOpen = true;
@@ -1461,9 +1674,60 @@
     'right-shoulders': 'vis-shoulders',
 };
 
+    const setControlVisibility = (layoutId, visible) => {
+    const el = document.querySelector(`[data-layout-id="${layoutId}"]`);
+    if (el && layoutState[layoutId]) {
+    layoutState[layoutId].visible = visible;
+    if (visible) {
+    el.classList.remove('hidden');
+} else {
+    el.classList.add('hidden');
+}
+}
+};
+
+    const applyLeftStickMode = (mode, options = {}) => {
+    const {
+    persist = true,
+    notify = true,
+    haptic = true,
+} = options;
+    const showStatic = mode !== 'dynamic';
+    const staticCheckbox = document.getElementById('vis-left-stick');
+    const dynamicCheckbox = document.getElementById('vis-left-stick-dynamic');
+
+    if (staticCheckbox) staticCheckbox.checked = showStatic;
+    if (dynamicCheckbox) dynamicCheckbox.checked = !showStatic;
+
+    setControlVisibility('left-stick', showStatic);
+    setControlVisibility('left-stick-dynamic', !showStatic);
+
+    if (persist && !immutableTemplates.has(currentTemplate)) {
+    templates[currentTemplate] = deepClone(layoutState);
+    saveTemplates();
+}
+
+    if (notify) {
+    showToast(`Left Joystick (${showStatic ? 'Static' : 'Dynamic'}) shown`);
+}
+    if (haptic) {
+    triggerHaptic(15);
+}
+};
+
     // Update visibility checkboxes from layout state
     const syncVisibilityCheckboxes = () => {
+    const staticVisible = layoutState['left-stick']?.visible !== false;
+    const dynamicVisible = layoutState['left-stick-dynamic']?.visible !== false;
+    const showStatic = staticVisible || !dynamicVisible;
+    applyLeftStickMode(showStatic ? 'static' : 'dynamic', {
+        persist: false,
+        notify: false,
+        haptic: false,
+    });
+
     Object.entries(visibilityCheckboxMap).forEach(([layoutId, checkboxId]) => {
+        if (layoutId === 'left-stick' || layoutId === 'left-stick-dynamic') return;
         const checkbox = document.getElementById(checkboxId);
         if (checkbox) {
             const visible = layoutState[layoutId]?.visible !== false;
@@ -1478,22 +1742,22 @@
     if (!checkbox) return;
 
     checkbox.addEventListener('change', () => {
+    if (checkboxId === 'vis-left-stick') {
+    applyLeftStickMode(checkbox.checked ? 'static' : 'dynamic');
+    return;
+}
+    if (checkboxId === 'vis-left-stick-dynamic') {
+    applyLeftStickMode(checkbox.checked ? 'dynamic' : 'static');
+    return;
+}
+
     const visible = checkbox.checked;
     const affectedIds = Object.keys(visibilityCheckboxMap).filter(
     (id) => visibilityCheckboxMap[id] === checkboxId
     );
 
     affectedIds.forEach((layoutId) => {
-    const el = document.querySelector(`[data-layout-id="${layoutId}"]`);
-    if (el && layoutState[layoutId]) {
-    layoutState[layoutId].visible = visible;
-    if (visible) {
-    el.classList.remove('hidden');
-} else {
-    el.classList.add('hidden');
-}
-}
-
+    setControlVisibility(layoutId, visible);
 });
 
     if (!immutableTemplates.has(currentTemplate)) {
@@ -1633,8 +1897,8 @@
     const panelRect = panel.getBoundingClientRect();
     const centerX = (panelRect.width - el.offsetWidth) / 2;
     const centerY = (panelRect.height - el.offsetHeight) / 2;
-    layoutState[selectedControlId].x = centerX;
-    layoutState[selectedControlId].y = centerY;
+    layoutState[selectedControlId].x = parseFloat((centerX / panelRect.width).toFixed(4));
+    layoutState[selectedControlId].y = parseFloat((centerY / panelRect.height).toFixed(4));
     el.style.left = `${centerX}px`;
     el.style.top = `${centerY}px`;
     if (!immutableTemplates.has(currentTemplate)) {
@@ -1652,7 +1916,7 @@
     // Settings button handlers
     document.getElementById('save-layout-btn').addEventListener('click', () => {
     if (immutableTemplates.has(currentTemplate)) {
-    showToast('Default template is locked. Create a new template to save changes.', 3000, true);
+    showToast('Built-in template is locked. Create a new template to save changes.', 3000, true);
     return;
 }
     templates[currentTemplate] = deepClone(layoutState);
@@ -1663,10 +1927,11 @@
 
     document.getElementById('reset-layout-btn').addEventListener('click', () => {
     if (confirm('Reset layout to default? This cannot be undone.')) {
-    setCurrentTemplate(defaultTemplateName);
+    const preferredTemplate = getPreferredDefaultTemplateName();
+    setCurrentTemplate(preferredTemplate);
     updateSettingsTemplateSelect();
     syncVisibilityCheckboxes();
-    showToast('Switched to locked Default template');
+    showToast(`Switched to locked "${preferredTemplate}" template`);
     triggerHaptic(25);
 }
 });
@@ -1699,8 +1964,11 @@
 };
 
     if (fullscreenBtn) {
-    fullscreenBtn.addEventListener('click', toggleFullscreen);
-}
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+        if (fullscreenBtnNotification) {
+            fullscreenBtnNotification.addEventListener('click', toggleFullscreen);
+        }
+    }
 
     ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach((evt) => {
     document.addEventListener(evt, updateFullscreenButton);
@@ -1770,6 +2038,8 @@
     const bundled = await loadBundledTemplates();
     if (bundled?.templates) {
     bundledTemplates = bundled.templates;
+    immutableTemplates.clear();
+    Object.keys(bundledTemplates).forEach((name) => immutableTemplates.add(name));
 }
 
     const stored = loadTemplates();
@@ -1778,13 +2048,20 @@
     currentTemplate = stored.currentTemplate || defaultTemplateName;
 } else if (bundledTemplates) {
     templates = deepClone(bundledTemplates);
-    currentTemplate = defaultTemplateName;
+    currentTemplate = getPreferredDefaultTemplateName(templates);
 } else {
     createDefaultTemplates();
 }
 
-    if (bundledTemplates && bundledTemplates[defaultTemplateName]) {
-    templates[defaultTemplateName] = deepClone(bundledTemplates[defaultTemplateName]);
+    if (bundledTemplates) {
+    templates = {
+    ...templates,
+    ...deepClone(bundledTemplates),
+};
+}
+
+    if (!templates[currentTemplate]) {
+    currentTemplate = getPreferredDefaultTemplateName(templates);
 }
 
     updateTemplateSelect();
@@ -1796,215 +2073,3 @@
 };
 
     initTemplates();
-
-
-
-
-    // ============================================
-    // FULL MERGED FILE WITH MULTI-TOUCH + ANALOG + TRUE BLENDING
-    // ============================================
-
-    // =============================
-    // ANALOG + BLENDING UTILS
-    // =============================
-    const lerp = (a, b, t) => a + (b - a) * t;
-    const SMOOTH_FACTOR = 0.25;
-    const BLEND_RADIUS = 50;
-
-    let smoothDpad = { x: 0, y: 0 };
-
-    // =============================
-    // TRUE BLENDING: DETECT MULTIPLE NEARBY BUTTONS
-    // =============================
-    const getButtonsAtPoint = (x, y) => {
-        const buttons = document.querySelectorAll('[data-button]');
-        const hits = [];
-
-        buttons.forEach(btn => {
-            const rect = btn.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
-
-            const dist = Math.hypot(cx - x, cy - y);
-
-            if (dist <= BLEND_RADIUS) {
-                hits.push({ btn, dist });
-            }
-        });
-
-        // Sort closest first
-        hits.sort((a, b) => a.dist - b.dist);
-
-        return hits;
-    };
-
-    // =============================
-    // FACE BUTTONS (MULTI + BLENDED)
-    // =============================
-    (() => {
-        const face = document.querySelector('[data-layout-id="face-buttons"]');
-        if (!face) return;
-
-        const activeTouches = new Map(); // touchId -> Set(buttons)
-
-        const handleTouch = (touchId, x, y) => {
-            const hits = getButtonsAtPoint(x, y);
-            const buttons = new Set();
-
-            hits.forEach(h => buttons.add(h.btn));
-
-            const prev = activeTouches.get(touchId) || new Set();
-
-            // release buttons no longer touched
-            prev.forEach(btn => {
-                if (!buttons.has(btn)) {
-                    btn.classList.remove('active');
-                    releaseButton(btn.dataset.button);
-                }
-            });
-
-            // press new buttons
-            buttons.forEach(btn => {
-                if (!prev.has(btn)) {
-                    btn.classList.add('active');
-                    pressButton(btn.dataset.button);
-                }
-            });
-
-            activeTouches.set(touchId, buttons);
-        };
-
-        const endTouch = (touchId) => {
-            const prev = activeTouches.get(touchId);
-            if (prev) {
-                prev.forEach(btn => {
-                    btn.classList.remove('active');
-                    releaseButton(btn.dataset.button);
-                });
-                activeTouches.delete(touchId);
-            }
-        };
-
-        face.addEventListener('touchstart', (e) => {
-            if (isControllerDisabled()) return;
-            for (const t of e.changedTouches) {
-                handleTouch(t.identifier, t.clientX, t.clientY);
-            }
-            e.preventDefault();
-        }, { passive: false });
-
-        face.addEventListener('touchmove', (e) => {
-            if (isControllerDisabled()) return;
-            for (const t of e.touches) {
-                if (!activeTouches.has(t.identifier)) continue;
-                handleTouch(t.identifier, t.clientX, t.clientY);
-            }
-            e.preventDefault();
-        }, { passive: false });
-
-        face.addEventListener('touchend', (e) => {
-            if (isControllerDisabled()) return;
-            for (const t of e.changedTouches) {
-                endTouch(t.identifier);
-            }
-            e.preventDefault();
-        }, { passive: false });
-    })();
-
-    // =============================
-    // D-PAD WITH TRUE ANALOG BLENDING + SMOOTHING
-    // =============================
-    // (() => {
-    //     const dpad = document.querySelector('[data-layout-id="dpad"]');
-    //     if (!dpad) return;
-    //
-    //     const activeTouches = new Map();
-    //
-    //     const dirForBtn = (btn) => {
-    //         if (!btn) return { x: 0, y: 0 };
-    //         const name = btn.dataset.button;
-    //         if (name === 'Left') return { x: -1, y: 0 };
-    //         if (name === 'Right') return { x: 1, y: 0 };
-    //         if (name === 'Up') return { x: 0, y: -1 };
-    //         if (name === 'Down') return { x: 0, y: 1 };
-    //         return { x: 0, y: 0 };
-    //     };
-    //
-    //     const handleTouch = (touchId, x, y) => {
-    //         const hits = getButtonsAtPoint(x, y);
-    //
-    //         const directions = [];
-    //
-    //         hits.forEach(({ btn, dist }) => {
-    //             const strength = 1 - Math.min(dist / BLEND_RADIUS, 1);
-    //             const dir = dirForBtn(btn);
-    //             directions.push({ x: dir.x * strength, y: dir.y * strength });
-    //         });
-    //
-    //         activeTouches.set(touchId, directions);
-    //         emitCombined();
-    //     };
-    //
-    //     const endTouch = (touchId) => {
-    //         activeTouches.delete(touchId);
-    //         emitCombined();
-    //     };
-    //
-    //     const emitCombined = () => {
-    //         let x = 0, y = 0;
-    //
-    //         for (const dirs of activeTouches.values()) {
-    //             dirs.forEach(d => {
-    //                 x += d.x;
-    //                 y += d.y;
-    //             });
-    //         }
-    //
-    //         const mag = Math.hypot(x, y);
-    //         if (mag > 1) {
-    //             x /= mag;
-    //             y /= mag;
-    //         }
-    //
-    //         // SMOOTHING
-    //         smoothDpad.x = lerp(smoothDpad.x, x, SMOOTH_FACTOR);
-    //         smoothDpad.y = lerp(smoothDpad.y, y, SMOOTH_FACTOR);
-    //
-    //         dpadState = {
-    //             x: Math.round(smoothDpad.x * 100) / 100,
-    //             y: Math.round(smoothDpad.y * 100) / 100
-    //         };
-    //
-    //         startLoop('DPAD', () => emitDpad(dpadState.x, dpadState.y));
-    //         emitDpad(dpadState.x, dpadState.y);
-    //     };
-    //
-    //     dpad.addEventListener('touchstart', (e) => {
-    //         if (isControllerDisabled()) return;
-    //         for (const t of e.changedTouches) {
-    //             handleTouch(t.identifier, t.clientX, t.clientY);
-    //         }
-    //         e.preventDefault();
-    //     }, { passive: false });
-    //
-    //     dpad.addEventListener('touchmove', (e) => {
-    //         if (isControllerDisabled()) return;
-    //         for (const t of e.touches) {
-    //             if (!activeTouches.has(t.identifier)) continue;
-    //             handleTouch(t.identifier, t.clientX, t.clientY);
-    //         }
-    //         e.preventDefault();
-    //     }, { passive: false });
-    //
-    //     dpad.addEventListener('touchend', (e) => {
-    //         if (isControllerDisabled()) return;
-    //         for (const t of e.changedTouches) {
-    //             endTouch(t.identifier);
-    //         }
-    //         e.preventDefault();
-    //     }, { passive: false });
-    // })();
-
-    // =============================
-    // REST OF YOUR ORIGINAL FILE REMAINS UNCHANGED
-    // =============================

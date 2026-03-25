@@ -1,3 +1,10 @@
+/**
+ * FILE OVERVIEW:
+ * Defines a reusable `<virtual-joystick>` web component. It tracks pointer
+ * movement, clamps motion to a radial boundary, and exposes normalized state
+ * through dataset fields/events consumed by the controller runtime.
+ */
+
 window.customElements.define('virtual-joystick', class VirtualJoystick extends HTMLElement {
     static #style = `
         :host {
@@ -58,6 +65,13 @@ window.customElements.define('virtual-joystick', class VirtualJoystick extends H
             transform: translate(calc(-50% + clamp(0px, var(--x), var(--size))), calc(-50% + clamp(0px, var(--y), var(--size))));
         }
     `
+    /**
+     * Convert a bearing angle into one of eight directional labels.
+     *
+     * @param {number} degree - Angle in degrees.
+     * @returns {string} One of: n, ne, e, se, s, sw, w, nw.
+     * @sideEffects None.
+     */
     static #getDir = (degree) => {
         const dirs = ['ne', 'n', 'nw', 'w', 'sw', 's', 'se'];
         const acute = 45;
@@ -69,6 +83,14 @@ window.customElements.define('virtual-joystick', class VirtualJoystick extends H
         }
         return 'e';
     }
+    /**
+     * Derive directional delta between two direction strings.
+     *
+     * @param {string} [a=''] - Previous direction string.
+     * @param {string} [b=''] - New direction string.
+     * @returns {string} Characters present in `b` but not in `a`.
+     * @sideEffects None.
+     */
     static #getUniqueDir(a = '', b = '') {
         let dir = '';
         if (a.includes(b[0]) === false) {
@@ -79,10 +101,25 @@ window.customElements.define('virtual-joystick', class VirtualJoystick extends H
         }
         return dir;
     }
+    /**
+     * Update joystick CSS custom properties for visual thumb position.
+     *
+     * @param {number} x - Local X position in pixels.
+     * @param {number} y - Local Y position in pixels.
+     * @returns {void}
+     * @sideEffects Mutates shadow element CSS variables.
+     */
     #setXY(x, y) {
         this.#element.style.setProperty('--x', `${x}px`);
         this.#element.style.setProperty('--y', `${y}px`);
     };
+    /**
+     * Compute geometry between pointer and joystick center.
+     *
+     * @param {{clientX: number, clientY: number}} param0 - Pointer coordinates.
+     * @returns {void}
+     * @sideEffects Updates internal pointer geometry cache (`#crow`).
+     */
     #calcCrow({ clientX, clientY }) {
         const { lock } = this.dataset;
         this.#rect = this.#element.getBoundingClientRect();
@@ -93,6 +130,13 @@ window.customElements.define('virtual-joystick', class VirtualJoystick extends H
         const hypot = Math.hypot(dxr, dyr);
         this.#crow = { dx, dy, dxr, dyr, hypot };
     }
+    /**
+     * Persist current joystick state into host dataset for external readers.
+     *
+     * @param {object} state - Partial joystick telemetry state.
+     * @returns {void}
+     * @sideEffects Writes multiple `data-*` attributes on the host element.
+     */
     #log({
         degree = 0,
         force = 0,
@@ -110,7 +154,14 @@ window.customElements.define('virtual-joystick', class VirtualJoystick extends H
             { degree, force, radian, distance, direction, hypot, capture, release, x, y }
         );
     }
-   #isInside(event) {
+    /**
+     * Check whether a pointer event falls inside joystick bounds.
+     *
+     * @param {PointerEvent} event - Pointer event to validate.
+     * @returns {boolean} True when pointer is inside the active boundary.
+     * @sideEffects None.
+     */
+    #isInside(event) {
         const { clientX, clientY } = event;
         const {
             left: x,
@@ -147,10 +198,19 @@ window.customElements.define('virtual-joystick', class VirtualJoystick extends H
         this.#log(output);
     }
     connectedCallback() {
+        // NOTE: Document-level listeners allow drag continuation outside bounds.
+        // FIXME: Add `disconnectedCallback` to remove listeners on teardown.
         document.addEventListener('pointerdown', this.#start);
         document.addEventListener('pointermove', this.#move);
         document.addEventListener('pointerup', this.#up);
     }
+    /**
+     * Begin joystick interaction for a pointer.
+     *
+     * @param {PointerEvent} event - Pointer down event.
+     * @returns {void}
+     * @sideEffects Updates active pointer stack and dispatches `joystickdown`.
+     */
     #start = (event) => {
         const { clientX, clientY } = event;
         const attachEvents = () => {
@@ -180,6 +240,13 @@ window.customElements.define('virtual-joystick', class VirtualJoystick extends H
             }
         }
     }
+    /**
+     * Update joystick state while active pointer moves.
+     *
+     * @param {PointerEvent} event - Pointer move event.
+     * @returns {void}
+     * @sideEffects Updates host dataset and dispatches `joystickmove`.
+     */
     #move = (event) => {
         if (this.#pointers.at(-1) === event.pointerId) {
             this.#calcCrow(event);
@@ -187,6 +254,12 @@ window.customElements.define('virtual-joystick', class VirtualJoystick extends H
             this.dispatchEvent(new CustomEvent('joystickmove'));
         }
     }
+    /**
+     * Apply clamped directional math and publish resulting state.
+     *
+     * @returns {void}
+     * @sideEffects Updates CSS variables and host `data-*` fields.
+     */
     #bind = () => {
         const { dx, dy, dxr, dyr, hypot } = this.#crow;
         const r = this.#r;
@@ -215,6 +288,13 @@ window.customElements.define('virtual-joystick', class VirtualJoystick extends H
         });
         this.#setXY(x, y);
     };
+    /**
+     * End joystick interaction for current pointer.
+     *
+     * @param {PointerEvent} event - Pointer up event.
+     * @returns {void}
+     * @sideEffects Resets visual state and dispatches `joystickup`.
+     */
     #up = (event) => {
         if (this.#pointers.at(-1) === event.pointerId) {
             this.#pointers.pop();
