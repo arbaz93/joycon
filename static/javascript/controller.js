@@ -1449,6 +1449,7 @@
     const hamburgerMenu = document.getElementById('hamburger-menu');
     const settingsClose = document.getElementById('settings-close');
     const fullscreenBtn = document.getElementById('fullscreen-toggle-btn');
+    const fullscreenBtnNotification = document.querySelector('.fullscreen-toggle-notification-btn');
 
     const openSettingsPanel = () => {
     settingsPanelOpen = true;
@@ -1801,8 +1802,10 @@
 };
 
     if (fullscreenBtn) {
-    fullscreenBtn.addEventListener('click', toggleFullscreen);
-}
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+        fullscreenBtnNotification.addEventListener('click', toggleFullscreen)
+        if(fullscreenBtn?.target?.parentElement?.parentElement?.style?.display) fullscreenBtn.target.parentElement.parentElement.style.display = 'none'
+    }
 
     ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach((evt) => {
     document.addEventListener(evt, updateFullscreenButton);
