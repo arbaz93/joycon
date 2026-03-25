@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>JoyCon</title>
-  <link rel="shortcut icon" href="../static/icons/logo.png" type="image/x-icon">
+  <title>WebController</title>
+  <meta name="description" content="Use your phone as a virtual game controller for Batocera and Linux game stacks." />
+  <link rel="shortcut icon" href="{{ url_for('static', filename='icons/logo.png') }}" type="image/x-icon">
   <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
 
 
-  <link rel="manifest" href="../static/manifest.json" />
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
   <meta name="theme-color" content="#000000" />
 
-  <link rel="stylesheet" href="../static/css/styles.css">
-  <link rel="stylesheet" href="../static/css/joystick.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/joystick.css') }}">
 
 </head>
 <body>
@@ -35,7 +36,7 @@
   </div>
 </div>
 
-  <script src="../static/javascript/index.js" defer></script>
+  <script src="{{ url_for('static', filename='javascript/index.js') }}" defer></script>
 
 
 

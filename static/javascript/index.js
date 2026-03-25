@@ -2,9 +2,9 @@ const main = document.getElementById('app');
 const warning = document.getElementById('warning');
 const closeNotification = document.getElementById('close-notification');
 
-const CONTENT_PATH = '../static/content.html';
-const CONTROLLER_PATH = '../static/javascript/controller.js';
-const JOYSTICK_PATH = '../static/javascript/virtual-joystick.js';
+const CONTENT_PATH = '/static/content.html';
+const CONTROLLER_PATH = '/static/javascript/controller.js';
+const JOYSTICK_PATH = '/static/javascript/virtual-joystick.js';
 
 let isLoaded = false;
 let isLoading = false;
@@ -30,6 +30,9 @@ async function loadContent() {
 
   try {
     const response = await fetch(CONTENT_PATH);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch controller content: ${response.status}`);
+    }
     const html = await response.text();
     main.innerHTML = html;
 
@@ -62,5 +65,8 @@ window.addEventListener('orientationchange', handleOrientation, { passive: true 
 
 if (closeNotification) {
   closeNotification.addEventListener('click', hideFullscreenNotification);
-  document.querySelector(".fullscreen-toggle-notification-btn").addEventListener('click', hideFullscreenNotification);
+  const fullscreenNotificationButton = document.querySelector('.fullscreen-toggle-notification-btn');
+  if (fullscreenNotificationButton) {
+    fullscreenNotificationButton.addEventListener('click', hideFullscreenNotification);
+  }
 }

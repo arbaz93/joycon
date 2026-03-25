@@ -314,7 +314,7 @@
 
     const importLayout = (file) => {
     if (!file || !file.name.endsWith('.json')) {
-    alert('Please select a valid JSON file');
+    showToast('Please select a valid JSON file', 3000, true);
     triggerHaptic(50);
     return;
 }
@@ -325,7 +325,7 @@
     const importedData = JSON.parse(e.target.result);
 
     if (!importedData.templates || typeof importedData.templates !== 'object') {
-    alert('Invalid layout file format');
+    showToast('Invalid layout file format', 3000, true);
     triggerHaptic(50);
     return;
 }
@@ -345,17 +345,17 @@
     updateTemplateSelect();
     saveTemplates();
 
-    alert(`Successfully imported ${importCount} template(s)!`);
+    showToast(`Successfully imported ${importCount} template(s)!`);
     triggerHaptic(40);
 } catch (error) {
     console.error('Failed to import layout:', error);
-    alert('Failed to import layout. Please check the file format.');
+    showToast('Failed to import layout. Please check the file format.', 3500, true);
     triggerHaptic(50);
 }
 };
 
     reader.onerror = () => {
-    alert('Failed to read file');
+    showToast('Failed to read file', 3000, true);
     triggerHaptic(50);
 };
 
@@ -665,8 +665,7 @@
     info.visible = !info.visible;
     layoutState[id] = info;
     el.classList.toggle('hidden', !info.visible);
-        syncVisibilityCheckboxes()
-        console.log("visibilty sync")
+        syncVisibilityCheckboxes();
     if (!immutableTemplates.has(currentTemplate)) {
     templates[currentTemplate] = deepClone(layoutState);
     saveTemplates();
@@ -1735,8 +1734,8 @@
     const panelRect = panel.getBoundingClientRect();
     const centerX = (panelRect.width - el.offsetWidth) / 2;
     const centerY = (panelRect.height - el.offsetHeight) / 2;
-    layoutState[selectedControlId].x = centerX;
-    layoutState[selectedControlId].y = centerY;
+    layoutState[selectedControlId].x = parseFloat((centerX / panelRect.width).toFixed(4));
+    layoutState[selectedControlId].y = parseFloat((centerY / panelRect.height).toFixed(4));
     el.style.left = `${centerX}px`;
     el.style.top = `${centerY}px`;
     if (!immutableTemplates.has(currentTemplate)) {
@@ -1803,8 +1802,9 @@
 
     if (fullscreenBtn) {
         fullscreenBtn.addEventListener('click', toggleFullscreen);
-        fullscreenBtnNotification.addEventListener('click', toggleFullscreen)
-        if(fullscreenBtn?.target?.parentElement?.parentElement?.style?.display) fullscreenBtn.target.parentElement.parentElement.style.display = 'none'
+        if (fullscreenBtnNotification) {
+            fullscreenBtnNotification.addEventListener('click', toggleFullscreen);
+        }
     }
 
     ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach((evt) => {
@@ -1910,215 +1910,3 @@
 };
 
     initTemplates();
-
-
-
-
-    // ============================================
-    // FULL MERGED FILE WITH MULTI-TOUCH + ANALOG + TRUE BLENDING
-    // ============================================
-
-    // =============================
-    // ANALOG + BLENDING UTILS
-    // =============================
-    const lerp = (a, b, t) => a + (b - a) * t;
-    const SMOOTH_FACTOR = 0.25;
-    const BLEND_RADIUS = 50;
-
-    let smoothDpad = { x: 0, y: 0 };
-
-    // =============================
-    // TRUE BLENDING: DETECT MULTIPLE NEARBY BUTTONS
-    // =============================
-    const getButtonsAtPoint = (x, y) => {
-        const buttons = document.querySelectorAll('[data-button]');
-        const hits = [];
-
-        buttons.forEach(btn => {
-            const rect = btn.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
-
-            const dist = Math.hypot(cx - x, cy - y);
-
-            if (dist <= BLEND_RADIUS) {
-                hits.push({ btn, dist });
-            }
-        });
-
-        // Sort closest first
-        hits.sort((a, b) => a.dist - b.dist);
-
-        return hits;
-    };
-
-    // =============================
-    // FACE BUTTONS (MULTI + BLENDED)
-    // =============================
-    (() => {
-        const face = document.querySelector('[data-layout-id="face-buttons"]');
-        if (!face) return;
-
-        const activeTouches = new Map(); // touchId -> Set(buttons)
-
-        const handleTouch = (touchId, x, y) => {
-            const hits = getButtonsAtPoint(x, y);
-            const buttons = new Set();
-
-            hits.forEach(h => buttons.add(h.btn));
-
-            const prev = activeTouches.get(touchId) || new Set();
-
-            // release buttons no longer touched
-            prev.forEach(btn => {
-                if (!buttons.has(btn)) {
-                    btn.classList.remove('active');
-                    releaseButton(btn.dataset.button);
-                }
-            });
-
-            // press new buttons
-            buttons.forEach(btn => {
-                if (!prev.has(btn)) {
-                    btn.classList.add('active');
-                    pressButton(btn.dataset.button);
-                }
-            });
-
-            activeTouches.set(touchId, buttons);
-        };
-
-        const endTouch = (touchId) => {
-            const prev = activeTouches.get(touchId);
-            if (prev) {
-                prev.forEach(btn => {
-                    btn.classList.remove('active');
-                    releaseButton(btn.dataset.button);
-                });
-                activeTouches.delete(touchId);
-            }
-        };
-
-        face.addEventListener('touchstart', (e) => {
-            if (isControllerDisabled()) return;
-            for (const t of e.changedTouches) {
-                handleTouch(t.identifier, t.clientX, t.clientY);
-            }
-            e.preventDefault();
-        }, { passive: false });
-
-        face.addEventListener('touchmove', (e) => {
-            if (isControllerDisabled()) return;
-            for (const t of e.touches) {
-                if (!activeTouches.has(t.identifier)) continue;
-                handleTouch(t.identifier, t.clientX, t.clientY);
-            }
-            e.preventDefault();
-        }, { passive: false });
-
-        face.addEventListener('touchend', (e) => {
-            if (isControllerDisabled()) return;
-            for (const t of e.changedTouches) {
-                endTouch(t.identifier);
-            }
-            e.preventDefault();
-        }, { passive: false });
-    })();
-
-    // =============================
-    // D-PAD WITH TRUE ANALOG BLENDING + SMOOTHING
-    // =============================
-    // (() => {
-    //     const dpad = document.querySelector('[data-layout-id="dpad"]');
-    //     if (!dpad) return;
-    //
-    //     const activeTouches = new Map();
-    //
-    //     const dirForBtn = (btn) => {
-    //         if (!btn) return { x: 0, y: 0 };
-    //         const name = btn.dataset.button;
-    //         if (name === 'Left') return { x: -1, y: 0 };
-    //         if (name === 'Right') return { x: 1, y: 0 };
-    //         if (name === 'Up') return { x: 0, y: -1 };
-    //         if (name === 'Down') return { x: 0, y: 1 };
-    //         return { x: 0, y: 0 };
-    //     };
-    //
-    //     const handleTouch = (touchId, x, y) => {
-    //         const hits = getButtonsAtPoint(x, y);
-    //
-    //         const directions = [];
-    //
-    //         hits.forEach(({ btn, dist }) => {
-    //             const strength = 1 - Math.min(dist / BLEND_RADIUS, 1);
-    //             const dir = dirForBtn(btn);
-    //             directions.push({ x: dir.x * strength, y: dir.y * strength });
-    //         });
-    //
-    //         activeTouches.set(touchId, directions);
-    //         emitCombined();
-    //     };
-    //
-    //     const endTouch = (touchId) => {
-    //         activeTouches.delete(touchId);
-    //         emitCombined();
-    //     };
-    //
-    //     const emitCombined = () => {
-    //         let x = 0, y = 0;
-    //
-    //         for (const dirs of activeTouches.values()) {
-    //             dirs.forEach(d => {
-    //                 x += d.x;
-    //                 y += d.y;
-    //             });
-    //         }
-    //
-    //         const mag = Math.hypot(x, y);
-    //         if (mag > 1) {
-    //             x /= mag;
-    //             y /= mag;
-    //         }
-    //
-    //         // SMOOTHING
-    //         smoothDpad.x = lerp(smoothDpad.x, x, SMOOTH_FACTOR);
-    //         smoothDpad.y = lerp(smoothDpad.y, y, SMOOTH_FACTOR);
-    //
-    //         dpadState = {
-    //             x: Math.round(smoothDpad.x * 100) / 100,
-    //             y: Math.round(smoothDpad.y * 100) / 100
-    //         };
-    //
-    //         startLoop('DPAD', () => emitDpad(dpadState.x, dpadState.y));
-    //         emitDpad(dpadState.x, dpadState.y);
-    //     };
-    //
-    //     dpad.addEventListener('touchstart', (e) => {
-    //         if (isControllerDisabled()) return;
-    //         for (const t of e.changedTouches) {
-    //             handleTouch(t.identifier, t.clientX, t.clientY);
-    //         }
-    //         e.preventDefault();
-    //     }, { passive: false });
-    //
-    //     dpad.addEventListener('touchmove', (e) => {
-    //         if (isControllerDisabled()) return;
-    //         for (const t of e.touches) {
-    //             if (!activeTouches.has(t.identifier)) continue;
-    //             handleTouch(t.identifier, t.clientX, t.clientY);
-    //         }
-    //         e.preventDefault();
-    //     }, { passive: false });
-    //
-    //     dpad.addEventListener('touchend', (e) => {
-    //         if (isControllerDisabled()) return;
-    //         for (const t of e.changedTouches) {
-    //             endTouch(t.identifier);
-    //         }
-    //         e.preventDefault();
-    //     }, { passive: false });
-    // })();
-
-    // =============================
-    // REST OF YOUR ORIGINAL FILE REMAINS UNCHANGED
-    // =============================
