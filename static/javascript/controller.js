@@ -940,6 +940,9 @@
     (() => {
     const dpad = document.querySelector('[data-layout-id="dpad"]');
     if (!dpad) return;
+    const dpadButtons = Array.from(dpad.querySelectorAll('button[data-button]'));
+    const DPAD_HIT_PADDING = 30;
+    const DPAD_HIT_SCALE = 1.8;
 
     let activeTouchId = null;
     let activeBtn = null;
@@ -980,6 +983,26 @@
     if (target && target.dataset && target.dataset.button && target.closest('[data-layout-id="dpad"]')) {
     return target;
 }
+    const dpadRect = dpad.getBoundingClientRect();
+    if (
+    clientX < dpadRect.left - DPAD_HIT_PADDING || clientX > dpadRect.right + DPAD_HIT_PADDING ||
+    clientY < dpadRect.top - DPAD_HIT_PADDING || clientY > dpadRect.bottom + DPAD_HIT_PADDING
+    ) {
+    return null;
+}
+
+    const nearest = dpadButtons
+    .map((btn) => {
+    const rect = btn.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const radius = Math.max(1, Math.min(rect.width, rect.height) / 2);
+    const distance = Math.hypot(clientX - cx, clientY - cy);
+    return { btn, normalizedDistance: distance / radius };
+})
+    .sort((a, b) => a.normalizedDistance - b.normalizedDistance)[0];
+
+    if (nearest && nearest.normalizedDistance <= DPAD_HIT_SCALE) return nearest.btn;
     return null;
 };
 
@@ -1041,88 +1064,178 @@
 });
 })();
 
-    // Face buttons slide support (drag across A/B/X/Y)
+    // Face buttons support multi-touch/chords and slide across A/B/X/Y.
     (() => {
     const face = document.querySelector('[data-layout-id="face-buttons"]');
     if (!face) return;
 
-    let activeTouchId = null;
-    let activeBtn = null;
+    const faceButtons = Array.from(face.querySelectorAll('button[data-button]'));
+    const pressedCounts = new Map();
+    const touchBindings = new Map();
     let mouseDown = false;
+    let mouseBindings = new Set();
 
-    const setBtn = (btnEl) => {
-    if (btnEl === activeBtn) return;
-    if (activeBtn) {
-    activeBtn.classList.remove('active');
-    releaseButton(activeBtn.dataset.button);
+    const activateButton = (btnEl) => {
+    const name = btnEl?.dataset?.button;
+    if (!name) return;
+    const nextCount = (pressedCounts.get(name) || 0) + 1;
+    pressedCounts.set(name, nextCount);
+    if (nextCount === 1) {
+    btnEl.classList.add('active');
+    pressButton(name);
 }
-    if (btnEl) {
-    activeBtn = btnEl;
-    activeBtn.classList.add('active');
-    pressButton(activeBtn.dataset.button);
+};
+
+    const deactivateButton = (btnEl) => {
+    const name = btnEl?.dataset?.button;
+    if (!name) return;
+    const nextCount = Math.max(0, (pressedCounts.get(name) || 0) - 1);
+    if (nextCount === 0) {
+    pressedCounts.delete(name);
+    btnEl.classList.remove('active');
+    releaseButton(name);
 } else {
-    activeBtn = null;
+    pressedCounts.set(name, nextCount);
 }
 };
 
-    const buttonFromPoint = (clientX, clientY) => {
+    const resolveButtonsAtPoint = (clientX, clientY) => {
+    const FACE_HIT_PADDING = 28;
+    const PRIMARY_HIT_SCALE = 1.55;
+    const SECONDARY_HIT_SCALE = 1.5;
+    const faceRect = face.getBoundingClientRect();
+    if (
+    clientX < faceRect.left - FACE_HIT_PADDING || clientX > faceRect.right + FACE_HIT_PADDING ||
+    clientY < faceRect.top - FACE_HIT_PADDING || clientY > faceRect.bottom + FACE_HIT_PADDING
+    ) {
+    return new Set();
+}
+
+    const ranked = faceButtons
+    .map((btn) => {
+    const rect = btn.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const radius = Math.max(1, Math.min(rect.width, rect.height) / 2);
+    const distance = Math.hypot(clientX - cx, clientY - cy);
+    return { btn, distance, normalizedDistance: distance / radius };
+})
+    .sort((a, b) => a.distance - b.distance);
+
+    if (!ranked.length) return new Set();
+
+    const selected = new Set();
     const target = document.elementFromPoint(clientX, clientY);
-    if (target && target.dataset && target.dataset.button && target.closest('[data-layout-id="face-buttons"]')) {
-    return target;
+    const targetButton = (
+    target &&
+    target.dataset &&
+    target.dataset.button &&
+    target.closest('[data-layout-id="face-buttons"]')
+    ) ? target : null;
+
+    const primary = targetButton
+    ? ranked.find((entry) => entry.btn === targetButton) || ranked[0]
+    : ranked[0];
+
+    if (primary.normalizedDistance <= PRIMARY_HIT_SCALE || targetButton) {
+    selected.add(primary.btn);
 }
-    return null;
+
+    // Allow one-finger chord when touching the gap between adjacent face buttons.
+    const secondary = ranked.find((entry) => entry.btn !== primary.btn);
+    if (secondary && primary && secondary.normalizedDistance <= SECONDARY_HIT_SCALE) {
+    const spread = Math.abs(secondary.distance - primary.distance);
+    const spreadLimit = Math.max(24, (primary.distance + secondary.distance) * 0.18);
+    if (spread <= spreadLimit) {
+    selected.add(secondary.btn);
+}
+}
+
+    return selected;
 };
 
-    const endCurrent = () => {
-    if (activeBtn) {
-    activeBtn.classList.remove('active');
-    releaseButton(activeBtn.dataset.button);
-    activeBtn = null;
+    const setTouchButtons = (touchId, nextButtons) => {
+    const prevButtons = touchBindings.get(touchId) || new Set();
+    prevButtons.forEach((btn) => {
+    if (!nextButtons.has(btn)) deactivateButton(btn);
+});
+    nextButtons.forEach((btn) => {
+    if (!prevButtons.has(btn)) activateButton(btn);
+});
+
+    if (nextButtons.size) {
+    touchBindings.set(touchId, nextButtons);
+} else {
+    touchBindings.delete(touchId);
 }
-    activeTouchId = null;
+};
+
+    const clearTouchButtons = (touchId) => {
+    const prevButtons = touchBindings.get(touchId);
+    if (!prevButtons) return;
+    prevButtons.forEach((btn) => deactivateButton(btn));
+    touchBindings.delete(touchId);
+};
+
+    const setMouseButtons = (nextButtons) => {
+    mouseBindings.forEach((btn) => {
+    if (!nextButtons.has(btn)) deactivateButton(btn);
+});
+    nextButtons.forEach((btn) => {
+    if (!mouseBindings.has(btn)) activateButton(btn);
+});
+    mouseBindings = nextButtons;
+};
+
+    const clearMouseButtons = () => {
+    mouseBindings.forEach((btn) => deactivateButton(btn));
+    mouseBindings = new Set();
 };
 
     face.addEventListener('touchstart', (e) => {
     if (isControllerDisabled()) return;
-    const t = e.changedTouches[0];
-    activeTouchId = t.identifier;
-    setBtn(buttonFromPoint(t.clientX, t.clientY));
+    Array.from(e.changedTouches).forEach((t) => {
+    setTouchButtons(t.identifier, resolveButtonsAtPoint(t.clientX, t.clientY));
+});
     e.preventDefault();
 }, { passive: false });
 
     face.addEventListener('touchmove', (e) => {
-    if (activeTouchId === null || isControllerDisabled()) return;
-    const touch = Array.from(e.touches).find((t) => t.identifier === activeTouchId);
-    if (!touch) return;
-    setBtn(buttonFromPoint(touch.clientX, touch.clientY));
+    if (isControllerDisabled()) return;
+    Array.from(e.changedTouches).forEach((t) => {
+    setTouchButtons(t.identifier, resolveButtonsAtPoint(t.clientX, t.clientY));
+});
     e.preventDefault();
 }, { passive: false });
+
+    const endTouches = (touchList) => {
+    Array.from(touchList).forEach((t) => clearTouchButtons(t.identifier));
+};
 
     face.addEventListener('touchend', (e) => {
-    if (activeTouchId === null || isControllerDisabled()) return;
-    const touch = Array.from(e.changedTouches).find((t) => t.identifier === activeTouchId);
-    if (!touch) return;
-    endCurrent();
-    e.preventDefault();
+    endTouches(e.changedTouches);
+    if (!isControllerDisabled()) e.preventDefault();
 }, { passive: false });
 
-    face.addEventListener('touchcancel', () => endCurrent());
+    face.addEventListener('touchcancel', (e) => {
+    endTouches(e.changedTouches);
+});
 
     face.addEventListener('mousedown', (e) => {
     if (isControllerDisabled()) return;
     mouseDown = true;
-    setBtn(buttonFromPoint(e.clientX, e.clientY));
+    setMouseButtons(resolveButtonsAtPoint(e.clientX, e.clientY));
 });
 
     window.addEventListener('mousemove', (e) => {
     if (!mouseDown || isControllerDisabled()) return;
-    setBtn(buttonFromPoint(e.clientX, e.clientY));
+    setMouseButtons(resolveButtonsAtPoint(e.clientX, e.clientY));
 });
 
     window.addEventListener('mouseup', () => {
     if (!mouseDown) return;
     mouseDown = false;
-    endCurrent();
+    clearMouseButtons();
 });
 })();
 
@@ -1137,6 +1250,9 @@
     let activeTouchId = null;
     let activeBtn = null;
     let mouseDown = false;
+    const shoulderButtons = Array.from(groupEl.querySelectorAll('button[data-button]'));
+    const SHOULDER_HIT_PADDING = 28;
+    const SHOULDER_HIT_SCALE = 1.75;
 
     const setBtn = (btnEl) => {
     if (btnEl === activeBtn) return;
@@ -1158,6 +1274,26 @@
     if (target && target.dataset && target.dataset.button && target.closest(`[data-layout-id="${groupEl.dataset.layoutId}"]`)) {
     return target;
 }
+    const groupRect = groupEl.getBoundingClientRect();
+    if (
+    clientX < groupRect.left - SHOULDER_HIT_PADDING || clientX > groupRect.right + SHOULDER_HIT_PADDING ||
+    clientY < groupRect.top - SHOULDER_HIT_PADDING || clientY > groupRect.bottom + SHOULDER_HIT_PADDING
+    ) {
+    return null;
+}
+
+    const nearest = shoulderButtons
+    .map((btn) => {
+    const rect = btn.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const radius = Math.max(1, Math.min(rect.width, rect.height) / 2);
+    const distance = Math.hypot(clientX - cx, clientY - cy);
+    return { btn, normalizedDistance: distance / radius };
+})
+    .sort((a, b) => a.normalizedDistance - b.normalizedDistance)[0];
+
+    if (nearest && nearest.normalizedDistance <= SHOULDER_HIT_SCALE) return nearest.btn;
     return null;
 };
 
