@@ -3,8 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>Web Controller</title>
+  <title>JoyCon</title>
+  <link rel="shortcut icon" href="../static/icons/logo.png" type="image/x-icon">
   <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+
+
+  <link rel="manifest" href="../static/manifest.json" />
+  <meta name="theme-color" content="#000000" />
 
   <link rel="stylesheet" href="../static/css/styles.css">
   <link rel="stylesheet" href="../static/css/joystick.css">
@@ -13,74 +18,27 @@
 <body>
 <div id="warning">Rotate your device to landscape</div>
 <main id="app"></main>
+<div class="fs-container">
 
-  <script>
-    const main = document.getElementById('app');
-    const warning = document.getElementById('warning');
+  <div>
+    <button class="fullscreen-toggle-notification-btn">
+      Enter Full Screen
+    </button>
 
-    let isLoaded = false;
-    let isLoading = false;
+    <label id="close-notification">
+      <input type="checkbox" name="close-notification" />
+      <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="100" height="100" viewBox="0 0 50 50">
+        <path d="M25,2C12.319,2,2,12.319,2,25s10.319,23,23,23s23-10.319,23-23S37.681,2,25,2z M33.71,32.29c0.39,0.39,0.39,1.03,0,1.42	C33.51,33.9,33.26,34,33,34s-0.51-0.1-0.71-0.29L25,26.42l-7.29,7.29C17.51,33.9,17.26,34,17,34s-0.51-0.1-0.71-0.29	c-0.39-0.39-0.39-1.03,0-1.42L23.58,25l-7.29-7.29c-0.39-0.39-0.39-1.03,0-1.42c0.39-0.39,1.03-0.39,1.42,0L25,23.58l7.29-7.29	c0.39-0.39,1.03-0.39,1.42,0c0.39,0.39,0.39,1.03,0,1.42L26.42,25L33.71,32.29z"></path>
+      </svg>
+    </label>
 
-    async function loadContent() {
-      if (isLoaded || isLoading) return;
-      isLoading = true;
+  </div>
+</div>
 
-      try {
-        // ✅ Updated correct path
-        const res = await fetch('../static/content.html');
-        const html = await res.text();
-        main.innerHTML = html;
-
-        if (!document.querySelector('script[data-controller]')) {
-          // ✅ Load controller.js only once
-          const script = document.createElement('script');
-          script.src = '../static/javascript/controller.js';
-          script.defer = true;
-          script.dataset.controller = "true";
-          document.body.appendChild(script);
-
-          // ✅ Load vitual-joystick.js only once
-
-          const joyScript = document.createElement('script');
-          joyScript.src = '../static/javascript/virtual-joystick.js';
-          joyScript.defer = true;
-          joyScript.dataset.controller = "true";
-          document.body.appendChild(joyScript);
-        }
-
-        requestAnimationFrame(() => {
-          main.classList.add('visible');
-        });
-
-        isLoaded = true;
-      } catch (err) {
-        main.innerHTML = "<p>Failed to load content</p>";
-      } finally {
-        isLoading = false;
-      }
-    }
-
-    function handleOrientation() {
-      const isLandscape = window.innerWidth > window.innerHeight;
-
-      if (isLandscape) {
-        warning.classList.add('hidden');
-        loadContent();
-      } else {
-        warning.classList.remove('hidden');
-        // content stays loaded (no unload)
-      }
-    }
-
-    handleOrientation();
-
-    window.addEventListener('resize', handleOrientation);
-    window.addEventListener('orientationchange', handleOrientation);
-  </script>
+  <script src="../static/javascript/index.js" defer></script>
 
 
 
   <!-- Virtual joystick script -->
-
 </body>
 </html>
