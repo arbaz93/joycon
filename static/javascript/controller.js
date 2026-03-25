@@ -1,17 +1,26 @@
-    // ============================================
-    // Performance Optimizations:
-    // ============================================
-    // 1. requestAnimationFrame: Joystick updates are synced to browser frames (60fps max)
-    // 2. Debounced emissions: Socket.io events throttled to ~60fps to reduce network chatter
-    // 3. Haptic feedback: Uses Vibration API for tactile feedback on button press/release
-    // 4. touch-action: none: Prevents browser default touch behaviors (scroll, zoom)
-    // 5. Passive event listeners: Used where possible to improve scroll performance
-    // 6. Immediate preventDefault(): Reduces input latency by preventing default actions early
-    // 7. Optimized DOM queries: Cached element references to avoid repeated lookups
-    // ============================================
+    /**
+     * FILE OVERVIEW:
+     * Main controller runtime for input handling, editable layout templates,
+     * settings panel behavior, and Socket.IO event emission.
+     *
+     * NOTE: This file intentionally consolidates all runtime behavior.
+     * TODO: Split into focused modules (layout, input, settings, transport).
+     *
+     * Performance notes:
+     * - requestAnimationFrame loops are used for active control streams.
+     * - Socket messages are rate-limited to reduce network chatter.
+     * - Passive listeners are used where they do not affect gesture control.
+     */
 
     const socket = io();
 
+    /**
+     * Attempt to lock screen orientation to landscape.
+     *
+     * @returns {void}
+     * @sideEffects Registers first-gesture listeners and may call
+     * `screen.orientation.lock`.
+     */
     const enforceLandscape = () => {
     const tryLock = async () => {
     try {
@@ -98,6 +107,12 @@
 };
 
 
+    /**
+     * Load persisted layout templates from localStorage.
+     *
+     * @returns {{templates: Object, currentTemplate: string}|null}
+     * @sideEffects None.
+     */
     const loadTemplates = () => {
     try {
     const stored = localStorage.getItem(templateStorageKey);
@@ -109,6 +124,12 @@
 }
 };
 
+    /**
+     * Fetch bundled template JSON shipped in static assets.
+     *
+     * @returns {Promise<Object|null>}
+     * @sideEffects Performs an HTTP fetch to static template endpoint.
+     */
     const loadBundledTemplates = async () => {
     try {
     const res = await fetch(defaultTemplateUrl, { cache: 'no-store' });
@@ -120,6 +141,12 @@
 }
 };
 
+    /**
+     * Persist runtime templates/current selection to localStorage.
+     *
+     * @returns {void}
+     * @sideEffects Writes serialized data into browser localStorage.
+     */
     const saveTemplates = () => {
     localStorage.setItem(templateStorageKey, JSON.stringify({
         templates,

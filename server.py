@@ -29,7 +29,18 @@ logging.basicConfig(
 
 
 def env_int(name: str, default: int) -> int:
-    """Read an integer environment variable with safe fallback."""
+    """Read an integer environment variable with fallback.
+
+    Args:
+        name: Environment variable key.
+        default: Value used when key is missing or invalid.
+
+    Returns:
+        Parsed integer value or ``default``.
+
+    Side Effects:
+        Logs a warning when the value exists but cannot be parsed.
+    """
     raw = os.getenv(name)
     if raw is None:
         return default
@@ -41,7 +52,18 @@ def env_int(name: str, default: int) -> int:
 
 
 def env_float(name: str, default: float) -> float:
-    """Read a float environment variable with safe fallback."""
+    """Read a float environment variable with fallback.
+
+    Args:
+        name: Environment variable key.
+        default: Value used when key is missing or invalid.
+
+    Returns:
+        Parsed float value or ``default``.
+
+    Side Effects:
+        Logs a warning when the value exists but cannot be parsed.
+    """
     raw = os.getenv(name)
     if raw is None:
         return default
@@ -53,7 +75,21 @@ def env_float(name: str, default: float) -> float:
 
 
 def env_origins(name: str, default: str = "*") -> str | list[str]:
-    """Parse comma-separated CORS origins; ``*`` stays wildcard."""
+    """Parse CORS origin configuration from environment.
+
+    Args:
+        name: Environment variable key.
+        default: Default value to use when unset.
+
+    Returns:
+        ``"*"``
+            to allow all origins, or
+        ``list[str]``
+            of allowed origins when comma-separated values are provided.
+
+    Side Effects:
+        None.
+    """
     raw = os.getenv(name, default).strip()
     if raw == "*":
         return raw
@@ -71,6 +107,7 @@ MAX_PLAYERS = env_int("MAX_PLAYERS", 4)
 EVENT_QUEUE_MAXLEN = env_int("QUEUE_MAXLEN", 512)
 MAX_EVENTS_PER_TICK = env_int("MAX_EVENTS_PER_TICK", 256)
 PROCESS_HZ = env_float("PROCESS_HZ", 120.0)
+# FIXME: PROCESS_HZ <= 0 causes invalid timing math (division by zero).
 PROCESS_DT = 1.0 / PROCESS_HZ
 PAD_NAME = os.getenv("PAD_NAME", "Microsoft X-Box 360 pad")
 
@@ -126,17 +163,51 @@ ALL_ABS_CODES = (*STICK_ABS_CODES, *TRIGGER_ABS_CODES, *HAT_ABS_CODES)
 ALL_BUTTON_CODES = tuple(dict.fromkeys([*BUTTON_MAP.values(), *DPAD_BUTTON_CODES.values()]))
 
 def clamp(value: float, low: float, high: float) -> float:
-    """Clamp ``value`` into [low, high]."""
+    """Clamp a floating-point value to the given range.
+
+    Args:
+        value: Candidate value.
+        low: Lower inclusive bound.
+        high: Upper inclusive bound.
+
+    Returns:
+        Value clamped to ``[low, high]``.
+
+    Side Effects:
+        None.
+    """
     return low if value < low else high if value > high else value
 
 
 def clamp_int(value: int, low: int, high: int) -> int:
-    """Clamp integer ``value`` into [low, high]."""
+    """Clamp an integer value to the given range.
+
+    Args:
+        value: Candidate value.
+        low: Lower inclusive bound.
+        high: Upper inclusive bound.
+
+    Returns:
+        Value clamped to ``[low, high]``.
+
+    Side Effects:
+        None.
+    """
     return low if value < low else high if value > high else value
 
 
 def is_valid_number(value: Any) -> bool:
-    """True for finite int/float values (bool excluded)."""
+    """Validate a numeric payload value.
+
+    Args:
+        value: Untrusted input from websocket payload.
+
+    Returns:
+        ``True`` when value is finite ``int`` or ``float`` and not ``bool``.
+
+    Side Effects:
+        None.
+    """
     if isinstance(value, bool):
         return False
     if not isinstance(value, (int, float)):
@@ -145,21 +216,51 @@ def is_valid_number(value: Any) -> bool:
 
 
 def safe_unit(value: Any) -> float | None:
-    """Normalize untrusted value into [-1.0, 1.0], else None."""
+    """Validate and clamp a normalized axis value.
+
+    Args:
+        value: Untrusted value expected in ``[-1.0, 1.0]``.
+
+    Returns:
+        Normalized float in ``[-1.0, 1.0]``, or ``None`` if invalid.
+
+    Side Effects:
+        None.
+    """
     if not is_valid_number(value):
         return None
     return float(clamp(float(value), -1.0, 1.0))
 
 
 def safe_trigger_unit(value: Any) -> float | None:
-    """Normalize untrusted trigger value into [0.0, 1.0], else None."""
+    """Validate and clamp a normalized trigger value.
+
+    Args:
+        value: Untrusted value expected in ``[0.0, 1.0]``.
+
+    Returns:
+        Normalized float in ``[0.0, 1.0]``, or ``None`` if invalid.
+
+    Side Effects:
+        None.
+    """
     if not is_valid_number(value):
         return None
     return float(clamp(float(value), 0.0, 1.0))
 
 
 def unit_to_stick_axis(value: float) -> int:
-    """Convert normalized stick value into Xbox-like ABS range."""
+    """Convert normalized stick value to signed ABS axis units.
+
+    Args:
+        value: Normalized axis value in ``[-1.0, 1.0]``.
+
+    Returns:
+        Integer axis value in ``[STICK_MIN, STICK_MAX]``.
+
+    Side Effects:
+        None.
+    """
     v = clamp(value, -1.0, 1.0)
     if v >= 0.0:
         out = int(round(v * STICK_MAX))
@@ -169,14 +270,36 @@ def unit_to_stick_axis(value: float) -> int:
 
 
 def unit_to_trigger_axis(value: float) -> int:
-    """Convert normalized trigger value into trigger ABS range."""
+    """Convert normalized trigger value to ABS trigger units.
+
+    Args:
+        value: Normalized trigger value in ``[0.0, 1.0]``.
+
+    Returns:
+        Integer trigger value in ``[TRIGGER_MIN, TRIGGER_MAX]``.
+
+    Side Effects:
+        None.
+    """
     v = clamp(value, 0.0, 1.0)
     out = int(round(v * TRIGGER_MAX))
     return clamp_int(out, TRIGGER_MIN, TRIGGER_MAX)
 
 
 def radial_deadzone(x: float, y: float, deadzone: float) -> tuple[float, float]:
-    """Apply radial deadzone and return re-scaled normalized vector."""
+    """Apply radial deadzone and preserve directional intent.
+
+    Args:
+        x: Normalized X axis.
+        y: Normalized Y axis.
+        deadzone: Deadzone radius in normalized coordinates.
+
+    Returns:
+        Tuple of normalized ``(x, y)`` after deadzone processing.
+
+    Side Effects:
+        None.
+    """
     dz = clamp(deadzone, 0.0, 0.95)
     mag = math.hypot(x, y)
     if mag <= dz:
@@ -191,7 +314,17 @@ def radial_deadzone(x: float, y: float, deadzone: float) -> tuple[float, float]:
 
 
 def quantize_hat(value: Any) -> int | None:
-    """Map analog-ish hat axis input to {-1, 0, 1}, else None."""
+    """Quantize hat/dpad scalar values.
+
+    Args:
+        value: Untrusted numeric payload.
+
+    Returns:
+        ``-1``, ``0``, or ``1`` when valid, otherwise ``None``.
+
+    Side Effects:
+        None.
+    """
     if not is_valid_number(value):
         return None
     v = clamp(float(value), -1.0, 1.0)
@@ -203,7 +336,20 @@ def quantize_hat(value: Any) -> int | None:
 
 
 def smooth_step(current: int, target: int, alpha: float, max_step: int) -> int:
-    """Filter axis transitions to reduce jitter and sudden spikes."""
+    """Interpolate axis output toward target with step limiting.
+
+    Args:
+        current: Current emitted axis value.
+        target: Desired axis value.
+        alpha: Interpolation factor in ``[0.0, 1.0]``.
+        max_step: Maximum absolute delta per tick.
+
+    Returns:
+        Smoothed next axis value.
+
+    Side Effects:
+        None.
+    """
     a = clamp(alpha, 0.0, 1.0)
     filtered = current + (target - current) * a
     stepped = int(round(filtered))
@@ -212,7 +358,17 @@ def smooth_step(current: int, target: int, alpha: float, max_step: int) -> int:
 
 
 def safe_button_state(value: Any) -> int | None:
-    """Accept only 0/1 or bool button state values."""
+    """Normalize button state payload.
+
+    Args:
+        value: Untrusted button state (bool or integer).
+
+    Returns:
+        ``0`` or ``1`` for valid values, otherwise ``None``.
+
+    Side Effects:
+        None.
+    """
     if isinstance(value, bool):
         return 1 if value else 0
     if not isinstance(value, int):
@@ -223,7 +379,17 @@ def safe_button_state(value: Any) -> int | None:
 
 
 def create_gamepad(player_id: int) -> UInput:
-    """Create a single virtual gamepad instance for a connected player."""
+    """Create and configure one virtual gamepad device.
+
+    Args:
+        player_id: 1-based player slot id.
+
+    Returns:
+        Configured ``evdev.UInput`` device handle.
+
+    Side Effects:
+        Creates a kernel-visible virtual input device.
+    """
     capabilities = {
         e.EV_KEY: list(ALL_BUTTON_CODES),
         # Some SDL/ES stacks check for MSC_SCAN and behave better when present.
@@ -254,7 +420,18 @@ def create_gamepad(player_id: int) -> UInput:
 
 @dataclass
 class ClientState:
-    """Runtime state for one connected controller client."""
+    """Runtime state for one connected controller client.
+
+    Attributes:
+        sid: Socket.IO session id.
+        ui: UInput handle bound to this client.
+        queue: Pending raw socket events.
+        lock: Queue lock for producer/consumer synchronization.
+        target_abs: Desired ABS state after event processing.
+        output_abs: Last emitted ABS state.
+        target_btn: Desired button state after event processing.
+        output_btn: Last emitted button state.
+    """
 
     sid: str
     ui: UInput
@@ -266,12 +443,30 @@ class ClientState:
     output_btn: dict[int, int] = field(default_factory=lambda: {code: 0 for code in ALL_BUTTON_CODES})
 
     def enqueue(self, event_type: str, payload: dict[str, Any]) -> None:
-        """Queue raw socket event payload for deferred processing."""
+        """Append one event into the client's bounded queue.
+
+        Args:
+            event_type: Logical event channel (button/joystick/trigger/dpad).
+            payload: Event payload dictionary from Socket.IO.
+
+        Returns:
+            None.
+
+        Side Effects:
+            Mutates the internal queue under lock.
+        """
         with self.lock:
             self.queue.append((event_type, payload))
 
     def drain(self) -> list[tuple[str, dict[str, Any]]]:
-        """Drain a bounded batch of pending events from the queue."""
+        """Pop a bounded event batch from the queue.
+
+        Returns:
+            List of ``(event_type, payload)`` tuples to process this tick.
+
+        Side Effects:
+            Mutates queue and may drop old backlog under high load.
+        """
         with self.lock:
             count = min(len(self.queue), MAX_EVENTS_PER_TICK)
             drained = [self.queue.popleft() for _ in range(count)]
@@ -288,18 +483,46 @@ clients_lock = threading.Lock()
 
 @APP.route("/")
 def index() -> str:
-    """Render the controller shell page."""
+    """Render the initial controller shell page.
+
+    Returns:
+        HTML response generated from ``templates/index.html``.
+
+    Side Effects:
+        None.
+    """
     return render_template("index.html")
 
 
 def get_client(sid: str) -> ClientState | None:
-    """Lookup client by Socket.IO session id."""
+    """Lookup connected client state by session id.
+
+    Args:
+        sid: Socket.IO session id.
+
+    Returns:
+        Matching ``ClientState`` when present, else ``None``.
+
+    Side Effects:
+        None.
+    """
     with clients_lock:
         return clients.get(sid)
 
 
 def add_client(sid: str) -> bool:
-    """Create and register a virtual gamepad for a new websocket client."""
+    """Register a new websocket client and virtual gamepad.
+
+    Args:
+        sid: Socket.IO session id.
+
+    Returns:
+        ``True`` on success, ``False`` if max players reached.
+
+    Side Effects:
+        Creates and stores a new ``UInput`` device.
+        Emits INFO logs for accepted/rejected connections.
+    """
     with clients_lock:
         if len(clients) >= MAX_PLAYERS:
             LOGGER.info("Rejected connection %s: max players reached (%d)", sid, MAX_PLAYERS)
@@ -312,7 +535,18 @@ def add_client(sid: str) -> bool:
 
 
 def remove_client(sid: str) -> None:
-    """Release virtual controller resources for a disconnected client."""
+    """Remove client state and release UInput resources.
+
+    Args:
+        sid: Socket.IO session id.
+
+    Returns:
+        None.
+
+    Side Effects:
+        Closes the kernel virtual input device handle.
+        Emits INFO/ERROR logs.
+    """
     with clients_lock:
         state = clients.pop(sid, None)
     if state is None:
@@ -327,7 +561,18 @@ def remove_client(sid: str) -> None:
 
 @SOCKETIO.on("connect")
 def on_connect(auth: Any = None) -> bool | None:
-    """Socket.IO connect hook; reject when capacity is exhausted."""
+    """Socket.IO connect hook.
+
+    Args:
+        auth: Optional handshake payload (unused).
+
+    Returns:
+        ``False`` to reject connection, ``None`` to accept.
+
+    Side Effects:
+        Allocates per-client state/UInput device on success.
+    """
+    # TODO: Add optional authentication/token gating for untrusted networks.
     sid = request.sid
     if not add_client(sid):
         return False
@@ -336,12 +581,30 @@ def on_connect(auth: Any = None) -> bool | None:
 
 @SOCKETIO.on("disconnect")
 def on_disconnect() -> None:
-    """Socket.IO disconnect hook."""
+    """Socket.IO disconnect hook.
+
+    Returns:
+        None.
+
+    Side Effects:
+        Removes client state and closes UInput device.
+    """
     remove_client(request.sid)
 
 
 def enqueue_event(event_type: str, data: Any) -> None:
-    """Push validated websocket payload into the per-client queue."""
+    """Validate and enqueue a Socket.IO event for later processing.
+
+    Args:
+        event_type: Logical event channel name.
+        data: Raw event payload from client.
+
+    Returns:
+        None.
+
+    Side Effects:
+        Mutates target client's queue when payload is valid.
+    """
     sid = request.sid
     state = get_client(sid)
     if state is None:
@@ -372,7 +635,19 @@ def on_dpad(data: Any) -> None:
 
 
 def apply_event(state: ClientState, event_type: str, data: dict[str, Any]) -> None:
-    """Map one input event onto target button/axis state."""
+    """Apply one logical input event to target controller state.
+
+    Args:
+        state: Target client runtime state.
+        event_type: Event channel name.
+        data: Parsed payload for this event.
+
+    Returns:
+        None.
+
+    Side Effects:
+        Mutates ``state.target_abs`` and/or ``state.target_btn``.
+    """
     if event_type == "joystick":
         stick = data.get("stick")
         if stick not in STICK_CODES:
@@ -423,7 +698,20 @@ def apply_event(state: ClientState, event_type: str, data: dict[str, Any]) -> No
 
 
 def emit_abs_if_changed(state: ClientState, code: int, new_value: int, writes: list[tuple[int, int, int]]) -> None:
-    """Add axis write only when output value changed."""
+    """Queue ABS write only when value differs from previous output.
+
+    Args:
+        state: Client runtime state.
+        code: ABS axis code.
+        new_value: Candidate new axis value.
+        writes: Accumulator for pending evdev writes.
+
+    Returns:
+        None.
+
+    Side Effects:
+        Mutates ``state.output_abs`` and appends to ``writes``.
+    """
     if code in STICK_ABS_CODES:
         new_value = clamp_int(new_value, STICK_MIN, STICK_MAX)
     elif code in TRIGGER_ABS_CODES:
@@ -440,7 +728,17 @@ def emit_abs_if_changed(state: ClientState, code: int, new_value: int, writes: l
 
 
 def build_writes(state: ClientState) -> list[tuple[int, int, int]]:
-    """Convert desired state into a minimal list of evdev writes."""
+    """Build minimal evdev write set for current tick.
+
+    Args:
+        state: Client runtime state.
+
+    Returns:
+        List of ``(event_type, code, value)`` tuples for ``UInput.write``.
+
+    Side Effects:
+        Mutates cached output state fields in ``state``.
+    """
     writes: list[tuple[int, int, int]] = []
 
     for code in STICK_ABS_CODES:
@@ -473,7 +771,15 @@ def build_writes(state: ClientState) -> list[tuple[int, int, int]]:
 
 
 def processing_loop() -> None:
-    """Background loop: process queued events and emit UInput updates."""
+    """Run the input processing worker loop.
+
+    Returns:
+        None.
+
+    Side Effects:
+        Continuously reads client queues, writes to UInput devices, sleeps per
+        configured tick interval, and disconnects clients on write failures.
+    """
     while True:
         loop_start = time.monotonic()
 
@@ -505,7 +811,14 @@ def processing_loop() -> None:
 
 
 def close_all_clients() -> None:
-    """Best-effort shutdown cleanup for all connected virtual gamepads."""
+    """Close all active clients during process shutdown.
+
+    Returns:
+        None.
+
+    Side Effects:
+        Closes each connected client's UInput device.
+    """
     with clients_lock:
         client_ids = list(clients.keys())
     for sid in client_ids:
