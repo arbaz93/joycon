@@ -8,314 +8,38 @@
         "x": 0.1,
         "y": 0.06,
         "width": 0.36,
-        "height": 0.1325,
+        "height": 0.1,
         "visible": true
       },
       "left-stick": {
         "id": "left-stick",
         "type": "joystick",
         "groupId": "left-stick",
-        "x": 0.1071,
-        "y": 0.2626,
-        "width": 0.3199,
-        "height": 0.2854,
-        "visible": true
-      },
-      "left-stick-dynamic": {
-        "id": "left-stick-dynamic",
-        "type": "joystick",
-        "groupId": "left-stick-dynamic",
         "x": 0.14,
         "y": 0.26,
-        "width": 0.3199,
-        "height": 0.2854,
-        "visible": false
-      },
-      "dpad": {
-        "id": "dpad",
-        "type": "dpad",
-        "groupId": "dpad",
-        "x": 0.3177,
-        "y": 0.5307,
-        "width": 0.4037,
-        "height": 0.3602,
-        "visible": true
-      },
-      "right-shoulders": {
-        "id": "right-shoulders",
-        "type": "trigger",
-        "groupId": "shoulders",
-        "x": 0.54,
-        "y": 0.06,
-        "width": 0.36,
-        "height": 0.1325,
-        "visible": true
-      },
-      "face-buttons": {
-        "id": "face-buttons",
-        "type": "button-group",
-        "groupId": "face-buttons",
-        "x": 0.5359,
-        "y": 0.4914,
-        "width": 0.3254,
-        "height": 0.3254,
-        "visible": true
-      },
-      "system-buttons": {
-        "id": "system-buttons",
-        "type": "button-group",
-        "groupId": "system-buttons",
-        "x": 0.5,
-        "y": 0.9,
-        "width": 0.22,
-        "height": 0.07,
-        "visible": true
-      },
-      "home-button": {
-        "id": "home-button",
-        "type": "button-group",
-        "groupId": "system-buttons",
-        "x": 0.5,
-        "y": 0.05,
-        "width": 0.08,
-        "height": 0.08,
-        "visible": true
-      },
-      "right-stick": {
-        "id": "right-stick",
-        "type": "joystick",
-        "groupId": "right-stick",
-        "x": 0.2157,
-        "y": 0.6798,
-        "width": 0.1994,
-        "height": 0.1779,
-        "visible": true
-      }
-    },
-    "Default Small Mobile": {
-      "left-shoulders": {
-        "id": "left-shoulders",
-        "type": "trigger",
-        "groupId": "shoulders",
-        "x": 0.1,
-        "y": 0.06,
-        "width": 0.36,
-        "height": 0.1325,
-        "visible": true
-      },
-      "left-stick": {
-        "id": "left-stick",
-        "type": "joystick",
-        "groupId": "left-stick",
-        "x": 0.1071,
-        "y": 0.2626,
-        "width": 0.3199,
-        "height": 0.2854,
-        "visible": true
-      },
-      "left-stick-dynamic": {
-        "id": "left-stick-dynamic",
-        "type": "joystick",
-        "groupId": "left-stick-dynamic",
-        "x": 0.14,
-        "y": 0.26,
-        "width": 0.3199,
-        "height": 0.2854,
-        "visible": false
-      },
-      "dpad": {
-        "id": "dpad",
-        "type": "dpad",
-        "groupId": "dpad",
-        "x": 0.3177,
-        "y": 0.5307,
-        "width": 0.4037,
-        "height": 0.3602,
-        "visible": true
-      },
-      "right-shoulders": {
-        "id": "right-shoulders",
-        "type": "trigger",
-        "groupId": "shoulders",
-        "x": 0.54,
-        "y": 0.06,
-        "width": 0.36,
-        "height": 0.1325,
-        "visible": true
-      },
-      "face-buttons": {
-        "id": "face-buttons",
-        "type": "button-group",
-        "groupId": "face-buttons",
-        "x": 0.5359,
-        "y": 0.4914,
-        "width": 0.3254,
-        "height": 0.3254,
-        "visible": true
-      },
-      "system-buttons": {
-        "id": "system-buttons",
-        "type": "button-group",
-        "groupId": "system-buttons",
-        "x": 0.5,
-        "y": 0.9,
-        "width": 0.22,
-        "height": 0.07,
-        "visible": true
-      },
-      "home-button": {
-        "id": "home-button",
-        "type": "button-group",
-        "groupId": "system-buttons",
-        "x": 0.5,
-        "y": 0.05,
-        "width": 0.08,
-        "height": 0.08,
-        "visible": true
-      },
-      "right-stick": {
-        "id": "right-stick",
-        "type": "joystick",
-        "groupId": "right-stick",
-        "x": 0.2157,
-        "y": 0.6798,
-        "width": 0.1994,
-        "height": 0.1779,
-        "visible": true
-      }
-    },
-    "Dynamic Joystick": {
-      "left-shoulders": {
-        "id": "left-shoulders",
-        "type": "trigger",
-        "groupId": "shoulders",
-        "x": 0.1,
-        "y": 0.06,
-        "width": 0.36,
-        "height": 0.1325,
-        "visible": true
-      },
-      "left-stick": {
-        "id": "left-stick",
-        "type": "joystick",
-        "groupId": "left-stick",
-        "x": 0.1071,
-        "y": 0.2626,
-        "width": 0.3199,
-        "height": 0.2613,
-        "visible": false
-      },
-      "left-stick-dynamic": {
-        "id": "left-stick-dynamic",
-        "type": "joystick",
-        "groupId": "left-stick-dynamic",
-        "x": 0.14,
-        "y": 0.26,
-        "width": 0.3199,
-        "height": 0.2613,
-        "visible": true
-      },
-      "dpad": {
-        "id": "dpad",
-        "type": "dpad",
-        "groupId": "dpad",
-        "x": 0.3177,
-        "y": 0.5307,
         "width": 0.32,
-        "height": 0.2614,
-        "visible": true
-      },
-      "right-shoulders": {
-        "id": "right-shoulders",
-        "type": "trigger",
-        "groupId": "shoulders",
-        "x": 0.54,
-        "y": 0.06,
-        "width": 0.36,
-        "height": 0.1325,
-        "visible": true
-      },
-      "face-buttons": {
-        "id": "face-buttons",
-        "type": "button-group",
-        "groupId": "face-buttons",
-        "x": 0.5359,
-        "y": 0.4914,
-        "width": 0.3254,
-        "height": 0.3254,
-        "visible": true
-      },
-      "system-buttons": {
-        "id": "system-buttons",
-        "type": "button-group",
-        "groupId": "system-buttons",
-        "x": 0.5,
-        "y": 0.9,
-        "width": 0.22,
-        "height": 0.07,
-        "visible": true
-      },
-      "home-button": {
-        "id": "home-button",
-        "type": "button-group",
-        "groupId": "system-buttons",
-        "x": 0.5,
-        "y": 0.05,
-        "width": 0.08,
-        "height": 0.08,
-        "visible": true
-      },
-      "right-stick": {
-        "id": "right-stick",
-        "type": "joystick",
-        "groupId": "right-stick",
-        "x": 0.2157,
-        "y": 0.6798,
-        "width": 0.1994,
-        "height": 0.1629,
-        "visible": true
-      }
-    },
-    "Steering": {
-      "left-shoulders": {
-        "id": "left-shoulders",
-        "type": "trigger",
-        "groupId": "shoulders",
-        "x": 0.1,
-        "y": 0.06,
-        "width": 0.36,
-        "height": 0.1417,
-        "visible": true
-      },
-      "left-stick": {
-        "id": "left-stick",
-        "type": "joystick",
-        "groupId": "left-stick",
-        "x": 0.2369,
-        "y": 0.4102,
-        "width": 0.3656,
-        "height": 0.2987,
+        "height": 0.32,
         "visible": true
       },
       "left-stick-dynamic": {
         "id": "left-stick-dynamic",
         "type": "joystick",
         "groupId": "left-stick-dynamic",
-        "x": 0.3246,
-        "y": 0.5106,
-        "width": 0.1654,
-        "height": 0.1351,
-        "visible": false
+        "x": 0.14,
+        "y": 0.26,
+        "width": 0.32,
+        "height": 0.32,
+        "visible": true
       },
       "dpad": {
         "id": "dpad",
         "type": "dpad",
         "groupId": "dpad",
-        "x": 0.3177,
-        "y": 0.5307,
-        "width": 0.2785,
-        "height": 0.2275,
-        "visible": false
+        "x": 0.24,
+        "y": 0.62,
+        "width": 0.32,
+        "height": 0.32,
+        "visible": true
       },
       "right-shoulders": {
         "id": "right-shoulders",
@@ -324,17 +48,17 @@
         "x": 0.54,
         "y": 0.06,
         "width": 0.36,
-        "height": 0.1417,
+        "height": 0.1,
         "visible": true
       },
       "face-buttons": {
         "id": "face-buttons",
         "type": "button-group",
         "groupId": "face-buttons",
-        "x": 0.3801,
-        "y": 0.4346,
-        "width": 0.3381,
-        "height": 0.3381,
+        "x": 0.6,
+        "y": 0.26,
+        "width": 0.28,
+        "height": 0.28,
         "visible": true
       },
       "system-buttons": {
@@ -361,11 +85,11 @@
         "id": "right-stick",
         "type": "joystick",
         "groupId": "right-stick",
-        "x": 0.2157,
-        "y": 0.6798,
-        "width": 0.1486,
-        "height": 0.1214,
-        "visible": false
+        "x": 0.54,
+        "y": 0.62,
+        "width": 0.32,
+        "height": 0.32,
+        "visible": true
       }
     }
   },
